@@ -130,6 +130,55 @@ class BlockTreeAssemblerTest extends TestCase
     }
 
     #[Test]
+    public function shared_subtree_is_rendered_at_root_and_inside_another_container(): void
+    {
+        $persistence = app(CanvasPersistence::class);
+        $persistence->replaceTree($this->host, [
+            ['type' => 'column', 'data' => ['id' => 'SHARED', 'content' => [
+                ['type' => 'content', 'data' => ['id' => 'LEAF', 'content' => '<p>Shared</p>']],
+            ]]],
+            ['type' => 'column', 'data' => ['id' => 'OTHER', 'content' => []]],
+        ]);
+        BlockPlacement::forceCreate([
+            'container_type' => 'block', 'container_id' => 'OTHER', 'slot' => 'content',
+            'rank' => '000000', 'block_id' => 'SHARED',
+        ]);
+
+        $tree = app(BlockTreeAssembler::class)->assemble($this->host);
+
+        $this->assertSame($tree[0], $tree[1]['data']['content'][0] ?? null);
+        $this->assertSame('LEAF', $tree[1]['data']['content'][0]['data']['content'][0]['data']['id']);
+    }
+
+    #[Test]
+    public function assemble_block_preserves_shared_subtrees_and_cuts_only_ancestor_cycles(): void
+    {
+        app(CanvasPersistence::class)->replaceTree($this->host, [
+            ['type' => 'column', 'data' => ['id' => 'ROOT', 'content' => [
+                ['type' => 'column', 'data' => ['id' => 'SHARED', 'content' => [
+                    ['type' => 'content', 'data' => ['id' => 'LEAF', 'content' => '<p>Shared</p>']],
+                ]]],
+                ['type' => 'column', 'data' => ['id' => 'OTHER', 'content' => []]],
+            ]]],
+        ]);
+        BlockPlacement::forceCreate([
+            'container_type' => 'block', 'container_id' => 'OTHER', 'slot' => 'content',
+            'rank' => '000000', 'block_id' => 'SHARED',
+        ]);
+        // A genuine back edge must terminate in both occurrences of SHARED.
+        BlockPlacement::forceCreate([
+            'container_type' => 'block', 'container_id' => 'SHARED', 'slot' => 'content',
+            'rank' => 'zzzzzz', 'block_id' => 'ROOT',
+        ]);
+
+        $tree = app(BlockTreeAssembler::class)->assembleBlock('ROOT');
+        $children = $tree['data']['content'];
+        $this->assertSame($children[0], $children[1]['data']['content'][0] ?? null);
+        $this->assertCount(1, $children[0]['data']['content']);
+        $this->assertSame('LEAF', $children[0]['data']['content'][0]['data']['id']);
+    }
+
+    #[Test]
     public function skips_a_cycle_without_infinite_loop(): void
     {
         Block::factory()->column()->withId('X')->create([

@@ -9,7 +9,6 @@ use ApiMedia\Tgs\Support\BlockTreeHydrator;
 use ApiMedia\Tgs\Support\HostDescriptor;
 use ApiMedia\Tgs\Support\TgsModels;
 use ExileOfAranei\ListOrdering\Support\GroupKey;
-use RuntimeException;
 
 use function array_unique;
 use function array_values;
@@ -54,6 +53,8 @@ class BlockTreeAssembler
         }
 
         $blocks = [];
+        // Load each entity once, but preserve every placement. The hydrator guards
+        // against ancestor cycles separately for each occurrence of a shared subtree.
         $visited = [];
         $frontier = $rootEdges->pluck('block_id')->unique()->all();
 
@@ -61,8 +62,6 @@ class BlockTreeAssembler
             $level = [];
             foreach ($frontier as $id) {
                 if (isset($visited[$id])) {
-                    report(new RuntimeException("BlockTreeAssembler: cycle detected at block {$id} on {$host->containerType}#{$host->containerId}/{$host->slot}"));
-
                     continue;
                 }
                 $visited[$id] = true;
@@ -93,17 +92,10 @@ class BlockTreeAssembler
             foreach ($childEdges as $e) {
                 $childId = $e->block_id;
 
-                if (isset($visited[$childId])) {
-                    // Child already visited elsewhere in the tree: including this edge
-                    // would make the hydrator re-expand an already-built node, looping
-                    // forever on a cycle. Drop the edge and report instead.
-                    report(new RuntimeException("BlockTreeAssembler: cycle detected — block {$childId} re-referenced from block {$e->container_id} on {$host->containerType}#{$host->containerId}/{$host->slot}"));
-
-                    continue;
-                }
-
                 $edges[] = ['parent_id' => $e->container_id, 'slot' => $e->slot, 'position' => $e->rank, 'child_id' => $childId];
-                $next[] = $childId;
+                if (! isset($visited[$childId])) {
+                    $next[] = $childId;
+                }
             }
 
             $frontier = array_values(array_unique($next));
@@ -117,7 +109,7 @@ class BlockTreeAssembler
      * существующего блока в чужое дерево (reuse). Сознательно не переиспользует
      * приватные детали assemble() — тот метод уже покрыт тестами хостового пути,
      * трогать его ради этого узкого случая рискованнее, чем немного продублировать
-     * BFS. Тот же cycle-guard (report(), не exception), что и в assemble().
+     * BFS. Защита от циклов работает в hydrator по предкам текущего размещения.
      *
      * @return array{type:string,data:array}|null
      */
@@ -149,15 +141,11 @@ class BlockTreeAssembler
             foreach ($childEdges as $e) {
                 $childId = $e->block_id;
 
-                if (isset($visited[$childId])) {
-                    report(new RuntimeException("BlockTreeAssembler::assembleBlock: cycle detected — block {$childId} re-referenced from block {$e->container_id}, root {$blockId}"));
-
-                    continue;
-                }
-
-                $visited[$childId] = true;
                 $edges[] = ['parent_id' => $e->container_id, 'slot' => $e->slot, 'position' => $e->rank, 'child_id' => $childId];
-                $next[] = $childId;
+                if (! isset($visited[$childId])) {
+                    $visited[$childId] = true;
+                    $next[] = $childId;
+                }
             }
 
             $aliveNext = [];

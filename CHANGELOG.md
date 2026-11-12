@@ -5,6 +5,16 @@ breaking changes; patch releases preserve the public API.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-13
+
+### Fixed
+
+- Preserve repeated placements of shared blocks and their subtrees at different
+  depths in canvas reads and single-block reads. Cycle protection now checks
+  ancestors of each placement instead of treating every repeated block as a cycle.
+- Add regression coverage for nested reuse, real ancestor cycles, and descendants
+  of shared containers.
+
 ## [0.1.0] - 2026-11-13
 
 ### Added
