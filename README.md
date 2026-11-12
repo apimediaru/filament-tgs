@@ -14,7 +14,7 @@ Namespace `ApiMedia\Tgs`. Вывод — типизированный JSON; фр
 ```bash
 composer require filament/filament:'^5.0'
 php artisan filament:install --panels
-composer require apimediaru/filament-tgs:'^0.1'
+composer require apimediaru/filament-tgs:'^0.1' -W
 php artisan vendor:publish --tag=tgs-config
 php artisan vendor:publish --provider='Spatie\MediaLibrary\MediaLibraryServiceProvider' --tag=medialibrary-migrations
 php artisan migrate

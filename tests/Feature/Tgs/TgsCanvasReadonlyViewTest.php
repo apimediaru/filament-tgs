@@ -33,7 +33,7 @@ class TgsCanvasReadonlyViewTest extends TestCase
         $demo = TgsDemo::factory()->create();
         $host = HostDescriptor::forModelSlot($demo, 'content');
         $block = app(CanvasPersistence::class)->addBlock(
-            $host, $host->containerType, $host->containerId, $host->slot, 'content', ['content' => 'Реальный текст блока'],
+            $host, $host->containerType, $host->containerId, $host->slot, 'content', ['content' => '<p>Реальный текст блока</p>'],
         );
 
         Livewire::test(TgsCanvas::class, ['canvasId' => $demo->canvas('content')->id, 'readonly' => true])
@@ -52,7 +52,7 @@ class TgsCanvasReadonlyViewTest extends TestCase
         // when referenced into $demo's canvas.
         $libHost = Canvas::named(TgsNamedCanvas::BlockLibrary)->hostDescriptor();
         $source = Block::updateOrCreate(['id' => 'RO-VIEW-FOREIGN'], [
-            'type' => 'content', 'data' => ['content' => 'Текст из источника'],
+            'type' => 'content', 'data' => ['content' => '<p>Текст из источника</p>'],
             'owner_container_type' => $libHost->containerType, 'owner_container_id' => $libHost->containerId,
         ]);
         $source->forceFill(['committed_at' => now()])->save();
