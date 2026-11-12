@@ -1,0 +1,555 @@
+{
+    "blocks": [
+        {
+            "type": "string",
+            "id": "string",
+            "section": {
+                "section_heading": "null",
+                "section_heading_tag": "null",
+                "section_heading_display": "null",
+                "section_heading_classname": "null",
+                "section_size": "null",
+                "section_position": "null",
+                "section_bg": "null",
+                "section_classname": "null",
+                "container_size": "null",
+                "container_position": "null"
+            },
+            "content": "string"
+        },
+        {
+            "type": "string",
+            "id": "string",
+            "section": {
+                "section_heading": "null",
+                "section_heading_tag": "null",
+                "section_heading_display": "null",
+                "section_heading_classname": "null",
+                "section_size": "null",
+                "section_position": "null",
+                "section_bg": "null",
+                "section_classname": "null",
+                "container_size": "null",
+                "container_position": "null"
+            },
+            "image": {
+                "original": {
+                    "url": "string",
+                    "width": "int",
+                    "height": "int",
+                    "hash": "string",
+                    "ratio": "float",
+                    "aspect_ratio": "string",
+                    "pt": "string"
+                },
+                "tiny": {
+                    "url": "string",
+                    "width": "int",
+                    "height": "int",
+                    "hash": "string",
+                    "ratio": "float",
+                    "aspect_ratio": "string",
+                    "pt": "string"
+                },
+                "thumb": {
+                    "url": "string",
+                    "width": "int",
+                    "height": "int",
+                    "hash": "string",
+                    "ratio": "float",
+                    "aspect_ratio": "string",
+                    "pt": "string"
+                },
+                "medium": {
+                    "url": "string",
+                    "width": "int",
+                    "height": "int",
+                    "hash": "string",
+                    "ratio": "float",
+                    "aspect_ratio": "string",
+                    "pt": "string"
+                },
+                "large": {
+                    "url": "string",
+                    "width": "int",
+                    "height": "int",
+                    "hash": "string",
+                    "ratio": "float",
+                    "aspect_ratio": "string",
+                    "pt": "string"
+                },
+                "conversions": {
+                    "original": {
+                        "url": "string",
+                        "width": "int",
+                        "height": "int",
+                        "hash": "string",
+                        "ratio": "float",
+                        "aspect_ratio": "string",
+                        "pt": "string"
+                    },
+                    "tiny": {
+                        "url": "string",
+                        "width": "int",
+                        "height": "int",
+                        "hash": "string",
+                        "ratio": "float",
+                        "aspect_ratio": "string",
+                        "pt": "string"
+                    },
+                    "thumb": {
+                        "url": "string",
+                        "width": "int",
+                        "height": "int",
+                        "hash": "string",
+                        "ratio": "float",
+                        "aspect_ratio": "string",
+                        "pt": "string"
+                    },
+                    "medium": {
+                        "url": "string",
+                        "width": "int",
+                        "height": "int",
+                        "hash": "string",
+                        "ratio": "float",
+                        "aspect_ratio": "string",
+                        "pt": "string"
+                    },
+                    "large": {
+                        "url": "string",
+                        "width": "int",
+                        "height": "int",
+                        "hash": "string",
+                        "ratio": "float",
+                        "aspect_ratio": "string",
+                        "pt": "string"
+                    }
+                }
+            },
+            "alt": "string",
+            "title": "null",
+            "caption": "null",
+            "navigate_to": "null",
+            "media_url": "null",
+            "is_original": "null",
+            "is_lightbox": "null",
+            "is_rounded": "null",
+            "classname": "null"
+        },
+        {
+            "type": "string",
+            "id": "string",
+            "section": {
+                "section_heading": "null",
+                "section_heading_tag": "null",
+                "section_heading_display": "null",
+                "section_heading_classname": "null",
+                "section_size": "null",
+                "section_position": "null",
+                "section_bg": "null",
+                "section_classname": "null",
+                "container_size": "null",
+                "container_position": "null"
+            },
+            "code": "string",
+            "is_pure": "true"
+        },
+        {
+            "type": "string",
+            "id": "string",
+            "section": {
+                "section_heading": "null",
+                "section_heading_tag": "null",
+                "section_heading_display": "null",
+                "section_heading_classname": "null",
+                "section_size": "null",
+                "section_position": "null",
+                "section_bg": "null",
+                "section_classname": "null",
+                "container_size": "null",
+                "container_position": "null"
+            },
+            "content": [
+                {
+                    "type": "string",
+                    "id": "string",
+                    "section": {
+                        "section_heading": "null",
+                        "section_heading_tag": "null",
+                        "section_heading_display": "null",
+                        "section_heading_classname": "null",
+                        "section_size": "null",
+                        "section_position": "null",
+                        "section_bg": "null",
+                        "section_classname": "null",
+                        "container_size": "null",
+                        "container_position": "null"
+                    },
+                    "content": "string"
+                }
+            ]
+        },
+        {
+            "type": "string",
+            "id": "string",
+            "section": {
+                "section_heading": "null",
+                "section_heading_tag": "null",
+                "section_heading_display": "null",
+                "section_heading_classname": "null",
+                "section_size": "null",
+                "section_position": "null",
+                "section_bg": "null",
+                "section_classname": "null",
+                "container_size": "null",
+                "container_position": "null"
+            },
+            "title": "null",
+            "content": [
+                {
+                    "type": "string",
+                    "id": "string",
+                    "section": {
+                        "section_heading": "null",
+                        "section_heading_tag": "null",
+                        "section_heading_display": "null",
+                        "section_heading_classname": "null",
+                        "section_size": "null",
+                        "section_position": "null",
+                        "section_bg": "null",
+                        "section_classname": "null",
+                        "container_size": "null",
+                        "container_position": "null"
+                    },
+                    "content": "string"
+                }
+            ],
+            "is_open": "null"
+        },
+        {
+            "type": "string",
+            "id": "string",
+            "section": {
+                "section_heading": "null",
+                "section_heading_tag": "null",
+                "section_heading_display": "null",
+                "section_heading_classname": "null",
+                "section_size": "null",
+                "section_position": "null",
+                "section_bg": "null",
+                "section_classname": "null",
+                "container_size": "null",
+                "container_position": "null"
+            },
+            "left": [
+                {
+                    "type": "string",
+                    "id": "string",
+                    "section": {
+                        "section_heading": "null",
+                        "section_heading_tag": "null",
+                        "section_heading_display": "null",
+                        "section_heading_classname": "null",
+                        "section_size": "null",
+                        "section_position": "null",
+                        "section_bg": "null",
+                        "section_classname": "null",
+                        "container_size": "null",
+                        "container_position": "null"
+                    },
+                    "content": "string"
+                }
+            ],
+            "right": [
+                {
+                    "type": "string",
+                    "id": "string",
+                    "section": {
+                        "section_heading": "null",
+                        "section_heading_tag": "null",
+                        "section_heading_display": "null",
+                        "section_heading_classname": "null",
+                        "section_size": "null",
+                        "section_position": "null",
+                        "section_bg": "null",
+                        "section_classname": "null",
+                        "container_size": "null",
+                        "container_position": "null"
+                    },
+                    "content": "string"
+                }
+            ],
+            "left_column_width": "null",
+            "right_column_width": "null",
+            "justification": "null",
+            "is_aligned_vertically": "null",
+            "is_swapped": "null"
+        },
+        {
+            "type": "string",
+            "id": "string",
+            "section": {
+                "section_heading": "null",
+                "section_heading_tag": "null",
+                "section_heading_display": "null",
+                "section_heading_classname": "null",
+                "section_size": "null",
+                "section_position": "null",
+                "section_bg": "null",
+                "section_classname": "null",
+                "container_size": "null",
+                "container_position": "null"
+            },
+            "is_accordion": "null",
+            "items": [
+                {
+                    "title": "string",
+                    "is_open": "true",
+                    "content": [
+                        {
+                            "type": "string",
+                            "id": "string",
+                            "section": {
+                                "section_heading": "null",
+                                "section_heading_tag": "null",
+                                "section_heading_display": "null",
+                                "section_heading_classname": "null",
+                                "section_size": "null",
+                                "section_position": "null",
+                                "section_bg": "null",
+                                "section_classname": "null",
+                                "container_size": "null",
+                                "container_position": "null"
+                            },
+                            "content": "string"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "string",
+            "id": "string",
+            "section": {
+                "section_heading": "null",
+                "section_heading_tag": "null",
+                "section_heading_display": "null",
+                "section_heading_classname": "null",
+                "section_size": "null",
+                "section_position": "null",
+                "section_bg": "null",
+                "section_classname": "null",
+                "container_size": "null",
+                "container_position": "null"
+            },
+            "items": [
+                {
+                    "title": "string",
+                    "content": [
+                        {
+                            "type": "string",
+                            "id": "string",
+                            "section": {
+                                "section_heading": "null",
+                                "section_heading_tag": "null",
+                                "section_heading_display": "null",
+                                "section_heading_classname": "null",
+                                "section_size": "null",
+                                "section_position": "null",
+                                "section_bg": "null",
+                                "section_classname": "null",
+                                "container_size": "null",
+                                "container_position": "null"
+                            },
+                            "content": "string"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "string",
+            "id": "string",
+            "section": {
+                "section_heading": "null",
+                "section_heading_tag": "null",
+                "section_heading_display": "null",
+                "section_heading_classname": "null",
+                "section_size": "null",
+                "section_position": "null",
+                "section_bg": "null",
+                "section_classname": "null",
+                "container_size": "null",
+                "container_position": "null"
+            },
+            "button": {
+                "button_label": "null",
+                "button_theme": "null",
+                "button_variant": "null",
+                "button_class": "null",
+                "button_alignment": "null"
+            },
+            "size": "null",
+            "content": [
+                {
+                    "type": "string",
+                    "id": "string",
+                    "section": {
+                        "section_heading": "null",
+                        "section_heading_tag": "null",
+                        "section_heading_display": "null",
+                        "section_heading_classname": "null",
+                        "section_size": "null",
+                        "section_position": "null",
+                        "section_bg": "null",
+                        "section_classname": "null",
+                        "container_size": "null",
+                        "container_position": "null"
+                    },
+                    "content": "string"
+                }
+            ]
+        },
+        {
+            "type": "string",
+            "id": "string",
+            "section": {
+                "section_heading": "null",
+                "section_heading_tag": "null",
+                "section_heading_display": "null",
+                "section_heading_classname": "null",
+                "section_size": "null",
+                "section_position": "null",
+                "section_bg": "null",
+                "section_classname": "null",
+                "container_size": "null",
+                "container_position": "null"
+            },
+            "images": [
+                {
+                    "original": {
+                        "url": "string",
+                        "width": "int",
+                        "height": "int",
+                        "hash": "string",
+                        "ratio": "float",
+                        "aspect_ratio": "string",
+                        "pt": "string"
+                    },
+                    "tiny": {
+                        "url": "string",
+                        "width": "int",
+                        "height": "int",
+                        "hash": "string",
+                        "ratio": "float",
+                        "aspect_ratio": "string",
+                        "pt": "string"
+                    },
+                    "thumb": {
+                        "url": "string",
+                        "width": "int",
+                        "height": "int",
+                        "hash": "string",
+                        "ratio": "float",
+                        "aspect_ratio": "string",
+                        "pt": "string"
+                    },
+                    "medium": {
+                        "url": "string",
+                        "width": "int",
+                        "height": "int",
+                        "hash": "string",
+                        "ratio": "float",
+                        "aspect_ratio": "string",
+                        "pt": "string"
+                    },
+                    "large": {
+                        "url": "string",
+                        "width": "int",
+                        "height": "int",
+                        "hash": "string",
+                        "ratio": "float",
+                        "aspect_ratio": "string",
+                        "pt": "string"
+                    },
+                    "conversions": {
+                        "original": {
+                            "url": "string",
+                            "width": "int",
+                            "height": "int",
+                            "hash": "string",
+                            "ratio": "float",
+                            "aspect_ratio": "string",
+                            "pt": "string"
+                        },
+                        "tiny": {
+                            "url": "string",
+                            "width": "int",
+                            "height": "int",
+                            "hash": "string",
+                            "ratio": "float",
+                            "aspect_ratio": "string",
+                            "pt": "string"
+                        },
+                        "thumb": {
+                            "url": "string",
+                            "width": "int",
+                            "height": "int",
+                            "hash": "string",
+                            "ratio": "float",
+                            "aspect_ratio": "string",
+                            "pt": "string"
+                        },
+                        "medium": {
+                            "url": "string",
+                            "width": "int",
+                            "height": "int",
+                            "hash": "string",
+                            "ratio": "float",
+                            "aspect_ratio": "string",
+                            "pt": "string"
+                        },
+                        "large": {
+                            "url": "string",
+                            "width": "int",
+                            "height": "int",
+                            "hash": "string",
+                            "ratio": "float",
+                            "aspect_ratio": "string",
+                            "pt": "string"
+                        }
+                    }
+                }
+            ],
+            "aspect_ratio": "null",
+            "slide_count": "null",
+            "is_lightbox": "null",
+            "is_original": "null",
+            "is_cropped": "null",
+            "is_rounded": "null",
+            "is_centered": "null",
+            "is_looped": "null",
+            "is_rewound": "null"
+        },
+        {
+            "type": "string",
+            "id": "string",
+            "section": {
+                "section_heading": "null",
+                "section_heading_tag": "null",
+                "section_heading_display": "null",
+                "section_heading_classname": "null",
+                "section_size": "null",
+                "section_position": "null",
+                "section_bg": "null",
+                "section_classname": "null",
+                "container_size": "null",
+                "container_position": "null"
+            },
+            "source": "string",
+            "embedded_src": "string",
+            "ratio": "string"
+        }
+    ],
+    "template": "string"
+}

@@ -1,0 +1,65 @@
+{
+    "name": "apimediaru/filament-tgs",
+    "description": "ТГС — a reusable Filament content canvas with typed blocks, media, reuse, history and trash.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.3",
+        "laravel/framework": "^13.0",
+        "filament/filament": "^5.0",
+        "filament/spatie-laravel-media-library-plugin": "^5.0",
+        "spatie/laravel-data": "^4.20",
+        "spatie/laravel-package-tools": "^1.0",
+        "spatie/laravel-typescript-transformer": "^2.6",
+        "exileofaranei/laravel-list-ordering": "^0.1.1",
+        "dereuromark/media-embed": "^1.0",
+        "jfcherng/php-diff": "^7.0",
+        "davidhsianturi/blade-bootstrap-icons": "^2.1",
+        "codeat3/blade-iconpark": "^1.7"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^4.4",
+        "pestphp/pest-plugin-laravel": "^4.1",
+        "pestphp/pest-plugin-arch": "^4.0",
+        "larastan/larastan": "^3.9",
+        "laravel/pint": "^1.29",
+        "fakerphp/faker": "^1.24"
+    },
+    "autoload": {
+        "psr-4": {
+            "ApiMedia\\Tgs\\": "src/",
+            "ApiMedia\\Tgs\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ApiMedia\\Tgs\\Tests\\": "tests/",
+            "Workbench\\App\\": "workbench/app/",
+            "Workbench\\Database\\Factories\\": "workbench/database/factories/",
+            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "ApiMedia\\Tgs\\TgsServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "analyse": "phpstan analyse",
+        "lint": "pint --test",
+        "format": "pint"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

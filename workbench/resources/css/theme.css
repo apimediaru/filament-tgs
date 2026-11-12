@@ -1,0 +1,4 @@
+@import '../../../vendor/filament/filament/resources/css/theme.css';
+@source '../../../resources/views/**/*.blade.php';
+@source '../../app/**/*.php';
+@source '../views/**/*.blade.php';

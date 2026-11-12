@@ -1,0 +1,31 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model&Spatie\\MediaLibrary\\HasMedia\:\:\$media\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Data/Blocks/GalleryData.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model&Spatie\\MediaLibrary\\HasMedia\:\:\$media\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Data/Blocks/PictureData.php
+
+		-
+			message: '#^Variable \$falseLabel on left side of \?\? is never defined\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: src/Filament/ContentBuilderFactory.php
+
+		-
+			message: '#^Variable \$state on left side of \?\? is never defined\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: src/Filament/ContentBuilderFactory.php
+
+		-
+			message: '#^Variable \$trueLabel on left side of \?\? is never defined\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: src/Filament/ContentBuilderFactory.php

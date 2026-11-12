@@ -1,0 +1,43 @@
+name: Tests
+on: [push, pull_request]
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4']
+        database: [sqlite, pgsql]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tgs_test
+          POSTGRES_USER: tgs
+          POSTGRES_PASSWORD: tgs
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      TGS_TEST_DRIVER: ${{ matrix.database }}
+      TGS_TEST_DATABASE: tgs_test
+      TGS_TEST_HOST: 127.0.0.1
+      TGS_TEST_USERNAME: tgs
+      TGS_TEST_PASSWORD: tgs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_sqlite, pdo_pgsql, gd, exif, intl, mbstring, zip
+          coverage: none
+      - run: composer update --prefer-dist --no-interaction
+      - run: composer test
+      - run: composer analyse
+      - run: composer lint
+      - uses: actions/setup-node@v4
+        if: matrix.php == '8.4' && matrix.database == 'sqlite'
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci && npm run build
+        if: matrix.php == '8.4' && matrix.database == 'sqlite'

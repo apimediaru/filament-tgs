@@ -1,0 +1,15 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/nesbot/carbon/extension.neon
+    - phpstan-baseline.neon
+parameters:
+    level: 5
+    paths:
+        - src
+        - database
+        - workbench/app
+        - tests
+    tmpDir: .phpstan-cache
+    ignoreErrors:
+        -
+            identifier: new.static
