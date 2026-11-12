@@ -22,7 +22,7 @@ class WorkbenchServiceProvider extends ServiceProvider
         $this->publishes([__DIR__.'/../../public/build/assets/theme.css' => public_path('vendor/tgs/workbench.css')], 'tgs-workbench-assets');
         Gate::define('tgs.access', fn ($user): bool => true);
         Gate::define('tgs.manageLibrary', fn ($user): bool => true);
-        Gate::define('tgs.manageLocks', fn ($user): bool => true);
-        Gate::define('tgs.deleteEverywhere', fn ($user): bool => true);
+        Gate::define('tgs.manageLocks', fn ($user): bool => $user->email === 'admin@tgs.test');
+        Gate::define('tgs.deleteEverywhere', fn ($user): bool => $user->email === 'admin@tgs.test');
     }
 }

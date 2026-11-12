@@ -15,7 +15,8 @@
         "dereuromark/media-embed": "^1.0",
         "jfcherng/php-diff": "^7.0",
         "davidhsianturi/blade-bootstrap-icons": "^2.1",
-        "codeat3/blade-iconpark": "^1.7"
+        "codeat3/blade-iconpark": "^1.7",
+        "spatie/laravel-medialibrary": "^11.0"
     },
     "require-dev": {
         "orchestra/testbench": "^11.0",
@@ -61,5 +62,16 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "homepage": "https://github.com/apimediaru/filament-tgs",
+    "keywords": [
+        "laravel",
+        "filament",
+        "content-builder",
+        "tgs"
+    ],
+    "support": {
+        "issues": "https://github.com/apimediaru/filament-tgs/issues",
+        "source": "https://github.com/apimediaru/filament-tgs"
+    }
 }

@@ -64,11 +64,20 @@ class CollectionResource extends Resource
     // child still carries its own icon.
     protected static string|\BackedEnum|null $navigationIcon = null;
 
-    protected static ?string $navigationLabel = 'Коллекции блоков';
+    public static function getNavigationLabel(): string
+    {
+        return __('tgs::filament.collections.plural');
+    }
 
-    protected static ?string $modelLabel = 'Коллекция блоков';
+    public static function getModelLabel(): string
+    {
+        return __('tgs::filament.collections.singular');
+    }
 
-    protected static ?string $pluralModelLabel = 'Коллекции блоков';
+    public static function getPluralModelLabel(): string
+    {
+        return __('tgs::filament.collections.plural');
+    }
 
     public static function canAccess(): bool
     {
@@ -124,12 +133,12 @@ class CollectionResource extends Resource
     {
         return [
             TextInput::make('name')
-                ->label('Название')
+                ->label(__('tgs::filament.collections.name'))
                 ->required()
                 ->maxLength(255)
                 ->columnSpanFull(),
             Textarea::make('description')
-                ->label('Описание')
+                ->label(__('tgs::filament.collections.description'))
                 ->rows(3)
                 ->columnSpanFull(),
             ...array_map(fn (string $group) => Section::make(__("tgs::filament.tgs.slots.{$group}") === "tgs::filament.tgs.slots.{$group}" ? $group : __("tgs::filament.tgs.slots.{$group}"))
@@ -142,11 +151,11 @@ class CollectionResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Название')
+                    ->label(__('tgs::filament.collections.name'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('description')
-                    ->label('Описание')
+                    ->label(__('tgs::filament.collections.description'))
                     ->limit(50)
                     ->searchable(),
             ])

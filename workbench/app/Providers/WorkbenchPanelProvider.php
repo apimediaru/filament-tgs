@@ -10,6 +10,7 @@ use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Workbench\App\Filament\Pages\DemoGuide;
 use Workbench\App\Filament\Pages\ShowJson;
 use Workbench\App\Filament\Resources\TgsDemoResource;
 use Workbench\App\Models\TgsDemo;
@@ -20,9 +21,9 @@ class WorkbenchPanelProvider extends PanelProvider
     {
         return $panel->default()->id('workbench')->path('admin')->login()
             ->resources([TgsDemoResource::class])
-            ->pages([ShowJson::class])
+            ->pages([DemoGuide::class, ShowJson::class])
             ->theme(asset('vendor/tgs/workbench.css'))
-            ->plugin(TgsPlugin::make()->hosts([TgsDemo::class], reusable: false))
+            ->plugin(TgsPlugin::make()->hosts([TgsDemo::class]))
             ->middleware([EncryptCookies::class, AddQueuedCookiesToResponse::class, StartSession::class, ShareErrorsFromSession::class])
             ->authMiddleware([Authenticate::class]);
     }

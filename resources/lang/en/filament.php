@@ -1,6 +1,17 @@
 <?php
 
 return [
+    'collections' => [
+        'singular' => 'Block collection',
+        'plural' => 'Block collections',
+        'name' => 'Name',
+        'description' => 'Description',
+        'lock_heading' => 'Lock block?',
+        'unlock_heading' => 'Unlock block?',
+        'lock_description' => 'Editors cannot change this block or its nested content.',
+        'lock' => 'Lock',
+        'unlock' => 'Unlock',
+    ],
     'tgs' => [
         'foreign_block_suffix' => '(shared block, read only)',
         'locked_block_suffix' => '(locked by administrator)',

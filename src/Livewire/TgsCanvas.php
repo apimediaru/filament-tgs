@@ -1484,9 +1484,9 @@ class TgsCanvas extends Component implements HasActions, HasSchemas
     {
         return Action::make('lockBlockAction')
             ->requiresConfirmation()
-            ->modalHeading('Заблокировать блок?')
-            ->modalDescription('Менеджеры не смогут менять этот блок и его вложенное содержимое.')
-            ->modalSubmitActionLabel('Заблокировать')
+            ->modalHeading(__('tgs::filament.collections.lock_heading'))
+            ->modalDescription(__('tgs::filament.collections.lock_description'))
+            ->modalSubmitActionLabel(__('tgs::filament.collections.lock'))
             ->action(function (array $arguments): void {
                 $this->guardWritable();
 
@@ -1498,8 +1498,8 @@ class TgsCanvas extends Component implements HasActions, HasSchemas
     {
         return Action::make('unlockBlockAction')
             ->requiresConfirmation()
-            ->modalHeading('Разблокировать блок?')
-            ->modalSubmitActionLabel('Разблокировать')
+            ->modalHeading(__('tgs::filament.collections.unlock_heading'))
+            ->modalSubmitActionLabel(__('tgs::filament.collections.unlock'))
             ->action(function (array $arguments): void {
                 $this->guardWritable();
 
