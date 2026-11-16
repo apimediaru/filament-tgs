@@ -7,14 +7,12 @@ use ApiMedia\Tgs\Enums\ContentBlockType;
 use ApiMedia\Tgs\Filament\ContentBuilderFactory;
 use ApiMedia\Tgs\Support\TgsBlock;
 use ApiMedia\Tgs\Support\TgsCategory;
-use ApiMedia\Tgs\Support\TgsMedia;
 use Closure;
 use Filament\Forms\Components\Textarea;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Contracts\Support\Htmlable;
-use Illuminate\Support\HtmlString;
 
 class Embedded extends TgsBlock
 {
@@ -64,11 +62,7 @@ class Embedded extends TgsBlock
                                 return __('tgs::filament.tgs.blocks.embedded.fields.@preview.help');
                             }
 
-                            $src = TgsMedia::parseEmbeddedURL($source);
-
-                            return $src === null
-                                ? __('tgs::filament.tgs.blocks.embedded.fields.@preview.vendor_error')
-                                : new HtmlString('<iframe class="aspect-video w-full" src="'.e($src).'"></iframe>');
+                            return ContentBuilderFactory::renderEmbeddedPreview($source);
                         }),
                 ])
                     ->visible(fn (Get $get) => ! empty($get('@toggle_preview')))
