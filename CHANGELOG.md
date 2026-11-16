@@ -5,6 +5,16 @@ breaking changes; patch releases preserve the public API.
 
 ## [Unreleased]
 
+### Fixed
+
+- Reject non-HTTP(S) and relative embedded media URLs in previews and `embedded_src`,
+  preserving the stored `source`. Escape preview URL attributes and normalize
+  scheme-relative provider output to HTTPS.
+- Capture declared cache keys before host/canvas deletion and invalidate only after
+  commit. Rollbacks preserve cache; surviving hosts also contribute their final keys.
+- Add portable regression tests for both embed preview forms, DTO parsing, deletion
+  of named/embedded/model hosts, nested rollback, shared blocks and late media events.
+
 ## [0.1.1] - 2026-11-13
 
 ### Fixed

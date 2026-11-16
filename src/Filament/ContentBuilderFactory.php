@@ -90,7 +90,9 @@ class ContentBuilderFactory
 
                         $src = TgsMedia::parseEmbeddedURL($source);
 
-                        return new HtmlString('<iframe class="aspect-video w-full" src="'.$src.'"></iframe>');
+                        return $src === null
+                            ? __('tgs::filament.tgs.blocks.embedded.fields.@preview.vendor_error')
+                            : new HtmlString('<iframe class="aspect-video w-full" src="'.e($src).'"></iframe>');
                     }), fn ($component) => $component->tap($modifyPreviewUsing)),
             ])
                 ->visible(fn (Get $get) => ! empty($get($toggleName)))

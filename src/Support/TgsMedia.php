@@ -157,18 +157,34 @@ final class TgsMedia
             return null;
         }
 
-        $src = $source;
+        $src = trim($source);
 
-        // Extract iframe source if embedded video is provided directly
-        if (preg_match('/(?<=src=").*?(?=[\*"])/', $source, $matches)) {
-            $src = $matches[0];
+        // Read only the iframe URL, never its other attributes or markup.
+        if (preg_match('~<iframe\b[^>]*\s+src\s*=\s*(["\'])(.*?)\1~is', $src, $matches)) {
+            $src = html_entity_decode($matches[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        if (! self::isHttpUrl($src)) {
+            return null;
         }
 
         // Try to parse the URL
         $parser = app(MediaEmbed::class);
         $mediaObject = $parser->parseUrl($src);
 
-        return $mediaObject?->getEmbedSrc() ?? $src;
+        $src = $mediaObject?->getEmbedSrc() ?? $src;
+        // Provider templates may omit the scheme; public output must be absolute.
+        if (str_starts_with($src, '//')) {
+            $src = 'https:'.$src;
+        }
+
+        return self::isHttpUrl($src) ? $src : null;
+    }
+
+    private static function isHttpUrl(string $url): bool
+    {
+        return filter_var($url, FILTER_VALIDATE_URL) !== false
+            && in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true);
     }
 
     private static function gcd(int $a, int $b): int
