@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ApiMedia\Tgs\Data\Shared;
 
 use ApiMedia\Tgs\Data\Concerns\ExtractsBlockData;
+use ApiMedia\Tgs\Support\TgsCommonSettings;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -28,7 +29,14 @@ class TgsSectionData extends Data
 
     public static function fromStored(array $raw): self
     {
-        return new self(
+        if (static::class === self::class) {
+            $class = app(TgsCommonSettings::class)::dataClass();
+            if ($class !== self::class) {
+                return $class::fromStored($raw);
+            }
+        }
+
+        return new static(
             section_heading: self::opt($raw, 'section_heading'),
             section_heading_tag: self::opt($raw, 'section_heading_tag'),
             section_heading_display: self::opt($raw, 'section_heading_display'),

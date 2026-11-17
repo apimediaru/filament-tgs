@@ -233,7 +233,7 @@ abstract class TgsBlock
 
     public function getBlockHeadingFields(): array|Closure
     {
-        return [
+        return app(TgsCommonSettings::class)->heading([
             Group::make([
                 Textarea::make('section_heading')
                     ->label(__('tgs::filament.tgs.settings.fields.section_heading.label'))
@@ -253,12 +253,12 @@ abstract class TgsBlock
                     ->helperText(__('tgs::filament.tgs.settings.fields.section_heading_classname.help'))
                     ->columnSpanFull(),
             ])->columns(2),
-        ];
+        ]);
     }
 
     public function getBlockSectionFields(): array|Closure
     {
-        return [
+        return app(TgsCommonSettings::class)->section([
             Group::make([
                 Select::make('section_size')
                     ->label(__('tgs::filament.tgs.settings.fields.section_size.label'))
@@ -274,12 +274,12 @@ abstract class TgsBlock
                     ->label(__('tgs::filament.tgs.settings.fields.section_classname.label'))
                     ->helperText(__('tgs::filament.tgs.settings.fields.section_classname.help')),
             ])->columns(2),
-        ];
+        ]);
     }
 
     public function getBlockContainerFields(): array|Closure
     {
-        return [
+        return app(TgsCommonSettings::class)->container([
             Select::make('container_size')
                 ->label(__('tgs::filament.tgs.settings.fields.container_size.label'))
                 ->options(ContainerSize::class)
@@ -288,7 +288,7 @@ abstract class TgsBlock
                 ->label(__('tgs::filament.tgs.settings.fields.container_position.label'))
                 ->options(Position::class)
                 ->native(false),
-        ];
+        ]);
     }
 
     public function getBlockFields(): array|Closure

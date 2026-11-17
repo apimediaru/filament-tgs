@@ -56,6 +56,15 @@ class ContentBuilderFactory
             );
     }
 
+    public static function renderEmbeddedPreview(string $source): string|HtmlString
+    {
+        $src = TgsMedia::parseEmbeddedURL($source);
+
+        return $src === null
+            ? __('tgs::filament.tgs.blocks.embedded.fields.@preview.vendor_error')
+            : new HtmlString('<iframe class="aspect-video w-full" src="'.e($src).'"></iframe>');
+    }
+
     public static function makeEmbeddedWithPreview(
         string $name,
         ?Closure $modifyInputUsing = null,
@@ -88,9 +97,7 @@ class ContentBuilderFactory
                             return __('tgs::filament.forms.presets.embedded_with_preview.fields.preview.help');
                         }
 
-                        $src = TgsMedia::parseEmbeddedURL($source);
-
-                        return new HtmlString('<iframe class="aspect-video w-full" src="'.$src.'"></iframe>');
+                        return self::renderEmbeddedPreview($source);
                     }), fn ($component) => $component->tap($modifyPreviewUsing)),
             ])
                 ->visible(fn (Get $get) => ! empty($get($toggleName)))

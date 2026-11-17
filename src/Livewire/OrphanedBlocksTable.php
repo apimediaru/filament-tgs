@@ -8,9 +8,9 @@ use ApiMedia\Tgs\Filament\ContentBuilderFactory;
 use ApiMedia\Tgs\Models\Block;
 use ApiMedia\Tgs\Services\CanvasPersistence;
 use ApiMedia\Tgs\Services\HostLabelResolver;
+use ApiMedia\Tgs\Support\BlockEditData;
 use ApiMedia\Tgs\Support\HostDescriptor;
 use ApiMedia\Tgs\Support\TgsBlock;
-use ApiMedia\Tgs\Support\TgsBlockRegistry;
 use ApiMedia\Tgs\Support\TgsModels;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -24,6 +24,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /**
@@ -37,6 +38,13 @@ class OrphanedBlocksTable extends Component implements HasActions, HasSchemas
 {
     use InteractsWithActions;
     use InteractsWithSchemas;
+
+    /** Server-owned repeater items preserve hidden values across reorder/delete. */
+    #[Locked]
+    public array $blockEditItems = [];
+
+    /** Same-request payload used to fill the form before repeater UUIDs exist. */
+    private array $blockEditOriginal = [];
 
     public function hydrate(): void
     {
@@ -98,17 +106,28 @@ class OrphanedBlocksTable extends Component implements HasActions, HasSchemas
     public function editBlockAction(): Action
     {
         return Action::make('editBlockAction')
+            ->databaseTransaction()
+            ->beforeFormValidated(function (): void {
+                app(BlockEditData::class)->prepareValidation($this->getMountedActionSchema());
+            })
+            ->afterFormFilled(function (): void {
+                $this->blockEditItems = app(BlockEditData::class)->captureItems(
+                    $this->getMountedActionSchema(), $this->blockEditOriginal,
+                );
+                $this->blockEditOriginal = [];
+            })
             ->authorize(fn (): bool => Gate::allows('tgs.manageLibrary'))
             ->fillForm(function (array $arguments): array {
                 $block = TgsModels::block()::find($arguments['block'] ?? null);
+                $this->blockEditOriginal = $block->data ?? [];
 
                 return [
-                    ...($block !== null ? $block->data : []),
+                    ...$this->blockEditOriginal,
                     'id' => $arguments['block'] ?? null,
                 ];
             })
             ->schema(fn (array $arguments, Schema $schema): array => TgsCanvas::blockEditSchema(
-                $arguments['type'] ?? null,
+                TgsModels::block()::find($arguments['block'] ?? null)?->type,
                 true,
                 false,
                 $schema,
@@ -118,7 +137,7 @@ class OrphanedBlocksTable extends Component implements HasActions, HasSchemas
 
                 return __('tgs::filament.tgs.canvas.block_modal.edit', ['block' => $label]);
             })
-            ->action(function (array $data, array $arguments): void {
+            ->action(function (array $data, array $arguments, Schema $schema): void {
                 Gate::authorize('tgs.manageLibrary');
                 $blockId = $arguments['block'];
 
@@ -126,10 +145,9 @@ class OrphanedBlocksTable extends Component implements HasActions, HasSchemas
                     return;
                 }
 
-                $block = TgsModels::block()::find($blockId);
+                $block = TgsModels::block()::query()->lockForUpdate()->find($blockId);
                 if ($block !== null) {
-                    $descriptor = app(TgsBlockRegistry::class)->get($block->type);
-                    $data = $descriptor?->preserveHiddenMetadata($block->data, $data, Schema::make($this)) ?? $data;
+                    $data = app(BlockEditData::class)->merge($block->data, $data, $schema, $this->blockEditItems);
                 }
 
                 app(CanvasPersistence::class)->editBlockData(new HostDescriptor('orphan', 'unknown', ''), $blockId, $data);

@@ -7,6 +7,7 @@ use ApiMedia\Tgs\Filament\Pages\ManageOrphanedBlocks;
 use ApiMedia\Tgs\Filament\Resources\CollectionResource;
 use ApiMedia\Tgs\Support\BlockVersionDiffer;
 use ApiMedia\Tgs\Support\TgsAuthorization;
+use ApiMedia\Tgs\Support\TgsCommonSettings;
 use ApiMedia\Tgs\Support\TgsConfiguration;
 use Closure;
 use Filament\Contracts\Plugin;
@@ -18,6 +19,9 @@ final class TgsPlugin implements Plugin
     public array $hostRegistrations = [];
 
     public array $blockClasses = [];
+
+    /** @var class-string<TgsCommonSettings>|null */
+    public ?string $commonSettingsClass = null;
 
     public array $hiddenBlocks = [];
 
@@ -42,6 +46,16 @@ final class TgsPlugin implements Plugin
     public function hosts(array $hosts, bool $reusable = true, bool $staging = false): self
     {
         $this->hostRegistrations[] = [$hosts, $reusable, $staging];
+
+        return $this;
+    }
+
+    public function commonSettings(string $class): self
+    {
+        if (! is_a($class, TgsCommonSettings::class, true)) {
+            throw new \InvalidArgumentException('Invalid common settings: '.$class);
+        }
+        $this->commonSettingsClass = $class;
 
         return $this;
     }

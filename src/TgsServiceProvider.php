@@ -2,6 +2,7 @@
 
 namespace ApiMedia\Tgs;
 
+use ApiMedia\Tgs\Data\Shared\TgsSectionData;
 use ApiMedia\Tgs\Events\TgsContentChanged;
 use ApiMedia\Tgs\Listeners\CaptureMediaConversionData;
 use ApiMedia\Tgs\Listeners\InvalidateBlockMediaCache;
@@ -9,6 +10,7 @@ use ApiMedia\Tgs\Listeners\InvalidateTgsHostCache;
 use ApiMedia\Tgs\Livewire\TgsCanvas;
 use ApiMedia\Tgs\Support\TgsAuthorization;
 use ApiMedia\Tgs\Support\TgsBlockRegistry;
+use ApiMedia\Tgs\Support\TgsCommonSettings;
 use ApiMedia\Tgs\Support\TgsConfiguration;
 use ApiMedia\Tgs\Support\TgsHostRegistry;
 use ApiMedia\Tgs\Support\TgsMediaConfiguration;
@@ -18,10 +20,13 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 use MediaEmbed\MediaEmbed;
+use phpDocumentor\Reflection\Fqsen;
+use phpDocumentor\Reflection\Types\Object_;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Spatie\MediaLibrary\Conversions\Events\ConversionHasBeenCompletedEvent;
 use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
+use Spatie\TypeScriptTransformer\TypeScriptTransformerConfig;
 
 class TgsServiceProvider extends PackageServiceProvider
 {
@@ -33,6 +38,23 @@ class TgsServiceProvider extends PackageServiceProvider
     public function packageRegistered(): void
     {
         $this->app->singleton(TgsConfiguration::class);
+        $this->app->bind(TgsCommonSettings::class, function () {
+            $class = app(TgsConfiguration::class)->commonSettingsClass();
+
+            return new $class;
+        });
+        // Use the installed transformer's native type replacement; no output string rewriting.
+        $this->app->extend(TypeScriptTransformerConfig::class, function ($config) {
+            $dto = app(TgsCommonSettings::class)::dataClass();
+            if ($dto !== TgsSectionData::class) {
+                $replacements = $config->getDefaultTypeReplacements();
+                $replacements[TgsSectionData::class] =
+                    new Object_(new Fqsen('\\'.$dto));
+                $config->defaultTypeReplacements($replacements);
+            }
+
+            return $config;
+        });
         $this->app->scoped(TgsBlockRegistry::class, function (): TgsBlockRegistry {
             $registry = new TgsBlockRegistry;
             foreach (app(TgsConfiguration::class)->plugins as $plugin) {
@@ -70,6 +92,7 @@ class TgsServiceProvider extends PackageServiceProvider
         TgsAuthorization::registerDefaults();
         // Panel configuration is needed by CLI/API too, before a request selects its panel.
         Filament::getPanels();
+        app(TgsConfiguration::class)->commonSettingsClass();
         Livewire::addNamespace('tgs', classNamespace: Str::beforeLast(TgsCanvas::class, '\\'));
         Event::listen(TgsContentChanged::class, InvalidateTgsHostCache::class);
         Event::listen(ConversionHasBeenCompletedEvent::class, CaptureMediaConversionData::class);

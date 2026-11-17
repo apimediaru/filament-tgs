@@ -136,6 +136,7 @@ return [
                 'block_created' => 'Block added',
                 'parent_locked' => 'Block locked',
                 'parent_locked_body' => 'You cannot add content to a locked block. Ask an administrator to unlock it.',
+                'stale_repeater' => 'The list changed after you opened this form. Reopen the block and try again.',
                 'block_updated' => 'Block saved',
                 'version_restored' => 'Version restored',
             ],
