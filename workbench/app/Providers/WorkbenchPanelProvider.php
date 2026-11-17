@@ -2,6 +2,7 @@
 
 namespace Workbench\App\Providers;
 
+use ApiMedia\Tgs\Support\TgsBlock;
 use ApiMedia\Tgs\TgsPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Panel;
@@ -14,6 +15,7 @@ use Workbench\App\Filament\Pages\DemoGuide;
 use Workbench\App\Filament\Pages\ShowJson;
 use Workbench\App\Filament\Resources\TgsDemoResource;
 use Workbench\App\Models\TgsDemo;
+use Workbench\App\Tgs\Counter;
 
 class WorkbenchPanelProvider extends PanelProvider
 {
@@ -23,8 +25,14 @@ class WorkbenchPanelProvider extends PanelProvider
             ->resources([TgsDemoResource::class])
             ->pages([DemoGuide::class, ShowJson::class])
             ->theme(asset('vendor/tgs/workbench.css'))
-            ->plugin(TgsPlugin::make()->hosts([TgsDemo::class]))
+            ->plugin(TgsPlugin::make()->hosts([TgsDemo::class])->blocks($this->blockDescriptors()))
             ->middleware([EncryptCookies::class, AddQueuedCookiesToResponse::class, StartSession::class, ShareErrorsFromSession::class])
             ->authMiddleware([Authenticate::class]);
+    }
+
+    /** @return list<class-string<TgsBlock>> */
+    protected function blockDescriptors(): array
+    {
+        return [Counter::class];
     }
 }
