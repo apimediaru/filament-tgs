@@ -13,16 +13,22 @@ use ApiMedia\Tgs\Support\BlockTree;
 use ApiMedia\Tgs\Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
+use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Workbench\App\Models\TgsDemo;
 use Workbench\App\Models\User;
+use Workbench\App\Providers\WorkbenchPanelProvider;
 use Workbench\App\Providers\WorkbenchServiceProvider;
+use Workbench\App\Tgs\Counter;
+use Workbench\App\Tgs\CounterData;
 use Workbench\Database\Seeders\DatabaseSeeder;
 
 class WorkbenchTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected const PANEL_PROVIDER = WorkbenchPanelProvider::class;
 
     protected function setUp(): void
     {
@@ -91,12 +97,38 @@ class WorkbenchTest extends TestCase
     public function seeded_demo_has_real_media_and_nested_typed_content_without_unknown_blocks(): void
     {
         $this->seed(DatabaseSeeder::class);
-        $demo = TgsDemo::query()->sole();
+        $demo = TgsDemo::query()->where('name', 'TGS Workbench')->sole();
         $content = $demo->getContent();
         $this->assertSame(['content', 'picture', 'gallery', 'tabs', 'embedded'], array_map(fn ($block) => $block->type->value, $content));
         $this->assertNotNull($content[1]->image);
         $this->assertCount(2, $content[2]->images);
         $this->assertCount(2, $content[3]->items);
+    }
+
+    #[Test]
+    public function seeded_counter_saves_through_the_canvas_and_survives_reseeding(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $this->actingAs(User::query()->where('email', 'admin@tgs.test')->sole());
+        $demo = TgsDemo::query()->where('name', DatabaseSeeder::COUNTER_DEMO)->sole();
+        $counter = $demo->getContent()[0];
+        $this->assertInstanceOf(CounterData::class, $counter);
+        $this->assertSame(2, $counter->count);
+
+        Livewire::test(TgsCanvas::class, ['canvasId' => $demo->canvas('content')->id])
+            ->assertSee('&middot; 2', escape: false)
+            ->mountAction('editBlockAction', ['block' => $counter->id, 'type' => Counter::TYPE, 'isRoot' => true])
+            ->assertSet('mountedActions.0.data.count', 2)
+            ->set('mountedActions.0.data.count', 0)
+            ->callMountedAction()
+            ->assertHasNoErrors()
+            ->assertSee('&middot; 0', escape: false);
+
+        $this->seed(DatabaseSeeder::class);
+        $this->assertSame(0, $demo->fresh()->getContent()[0]->count);
+        $this->get('/admin/tgs-demos/'.$demo->getKey().'/edit')
+            ->assertOk()
+            ->assertSee('&middot; 0', escape: false);
     }
 
     #[Test]
@@ -122,7 +154,7 @@ class WorkbenchTest extends TestCase
         app()->setLocale($locale);
         $this->seed(DatabaseSeeder::class);
         $this->actingAs(User::query()->where('email', 'admin@tgs.test')->sole());
-        $demo = TgsDemo::query()->sole();
+        $demo = TgsDemo::query()->where('name', 'TGS Workbench')->sole();
 
         $this->get('/admin/tgs-demos/'.$demo->getKey().'/edit')
             ->assertOk()

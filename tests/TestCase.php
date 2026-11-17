@@ -2,14 +2,16 @@
 
 namespace ApiMedia\Tgs\Tests;
 
+use ApiMedia\Tgs\Tests\Fixtures\PackageTestPanelProvider;
 use ApiMedia\Tgs\TgsServiceProvider;
 use Filament\Facades\Filament;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Workbench\App\Models\User;
-use Workbench\App\Providers\WorkbenchPanelProvider;
 
 abstract class TestCase extends Orchestra
 {
+    protected const PANEL_PROVIDER = PackageTestPanelProvider::class;
+
     protected $enablesPackageDiscoveries = true;
 
     protected function getPackageProviders($app): array
@@ -22,7 +24,7 @@ abstract class TestCase extends Orchestra
             }
         }
 
-        return array_values(array_unique([...$providers, TgsServiceProvider::class, WorkbenchPanelProvider::class]));
+        return array_values(array_unique([...$providers, TgsServiceProvider::class, static::PANEL_PROVIDER]));
     }
 
     protected function defineEnvironment($app): void

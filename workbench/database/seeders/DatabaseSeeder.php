@@ -6,15 +6,19 @@ use ApiMedia\Tgs\Enums\TgsNamedCanvas;
 use ApiMedia\Tgs\Models\Canvas;
 use ApiMedia\Tgs\Models\Collection;
 use ApiMedia\Tgs\Services\BlockTreeAssembler;
+use ApiMedia\Tgs\Services\CanvasPersistence;
 use ApiMedia\Tgs\Support\AccordionBuilder;
 use ApiMedia\Tgs\Support\BlockTree;
 use ApiMedia\Tgs\Support\TabsBuilder;
 use Illuminate\Database\Seeder;
 use Workbench\App\Models\TgsDemo;
 use Workbench\App\Models\User;
+use Workbench\App\Tgs\Counter;
 
 class DatabaseSeeder extends Seeder
 {
+    public const COUNTER_DEMO = 'Демо: счётчик';
+
     public function run(): void
     {
         User::firstOrCreate(['email' => 'admin@tgs.test'], ['name' => 'TGS Demo', 'password' => 'password']);
@@ -30,6 +34,13 @@ class DatabaseSeeder extends Seeder
                     ->tabItem('Пример', fn (BlockTree $tree) => $tree->code('echo "TGS";')))
                 ->embedded('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
                 ->persistTo($demo, 'content');
+        }
+
+        $counterDemo = TgsDemo::firstOrCreate(['name' => self::COUNTER_DEMO]);
+        if ($counterDemo->wasRecentlyCreated) {
+            app(CanvasPersistence::class)->replaceTree($counterDemo->canvas('content')->hostDescriptor(), [
+                ['type' => Counter::TYPE, 'data' => ['count' => 2]],
+            ]);
         }
 
         $library = Canvas::named(TgsNamedCanvas::BlockLibrary);
