@@ -54,10 +54,12 @@ php artisan make:filament-theme --panel=admin
 Для `resources/css/filament/admin/theme.css` подходит следующий путь.
 
 ```css
-@source '../../../../vendor/apimediaru/filament-tgs/resources/views/**/*.blade.php';
+@source '../../../../vendor/apimediaru/filament-tgs/{resources/views/**/*.blade.php,src/**/*.php}';
 ```
 
-Путь считается от CSS-файла. Если вы переопределяете шаблоны ТГС, добавьте также
+Путь считается от CSS-файла. Директива включает Blade-шаблоны и классы,
+которые пакет выводит из PHP, например `aspect-video` у превью встроенного видео.
+Если вы переопределяете шаблоны ТГС, добавьте также
 [источник локальных Blade overrides](#локальные-blade-overrides). Затем соберите тему.
 
 ```bash
@@ -590,15 +592,14 @@ php artisan view:clear
 php artisan view:cache
 ```
 
-Удаление локального файла возвращает fallback из пакета. Для темы
-`resources/css/filament/admin/theme.css` нужны оба источника Tailwind:
+Удаление локального файла возвращает fallback из пакета. К источнику пакета
+добавьте источник локальных шаблонов. Для темы
+`resources/css/filament/admin/theme.css` это следующий путь.
 
 ```css
-@source '../../../../vendor/apimediaru/filament-tgs/resources/views/**/*.blade.php';
 @source '../../../views/vendor/tgs/**/*.blade.php';
 ```
 
-Первый собирает классы поставляемых шаблонов, второй — новые классы локальных копий.
 После изменений классов выполните `npm run build`. Blade cache не пересобирает CSS. После обновления кода или регистрации настроек
 в приложении с Octane выполните `php artisan octane:reload` в рамках deploy.
 Обновление Composer не обновляет опубликованные копии: сравнивайте используемые
