@@ -5,6 +5,18 @@ breaking changes; patch releases preserve the public API.
 
 ## [Unreleased]
 
+### Added
+
+- Configure public site cache invalidation through `TgsPlugin::siteCache()`.
+  The default uses Laravel's cache. A custom `SiteCacheInvalidator` or
+  disabling site cache invalidation can be selected application-wide.
+
+### Fixed
+
+- Invalidate public cache after the commit that removes a canvas or a model
+  host and its canvas content, including when deletion starts without an
+  outer transaction.
+
 ## [0.1.3] - 2026-11-17
 
 ### Fixed

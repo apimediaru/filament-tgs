@@ -6,7 +6,6 @@ use ApiMedia\Tgs\Models\Canvas;
 use ApiMedia\Tgs\Support\HostDescriptor;
 use ApiMedia\Tgs\Support\TgsModels;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 use function in_array;
@@ -20,6 +19,8 @@ use function in_array;
  */
 trait HasCanvases
 {
+    use DeletesWithCanvasContent;
+
     /** @return list<string> ключи групп (обычно из enum) */
     abstract public static function canvasGroups(): array;
 
@@ -31,15 +32,14 @@ trait HasCanvases
             }
         });
 
-        static::deleting(function (self $host): void {
-            // Поштучно, а не ->delete() по билдеру: mass-delete не поднимает модельные
-            // события, и `deleting`-каскад Canvas (backlog #25) не сработал бы. Оборачиваем
-            // цикл в транзакцию: у хоста может быть несколько групп (Article: content +
-            // bottom_content), и без атомарности сбой на середине цикла осиротил бы контент
-            // ещё не удалённых групп.
-            DB::transaction(function () use ($host): void {
-                $host->canvasRecords()->get()->each->delete();
-            });
+        static::deleting(function (self $host): ?bool {
+            foreach ($host->canvasRecords()->get() as $canvas) {
+                if ($canvas->delete() === false) {
+                    return false;
+                }
+            }
+
+            return null;
         });
     }
 

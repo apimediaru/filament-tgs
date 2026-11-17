@@ -3,6 +3,7 @@
 namespace ApiMedia\Tgs\Support;
 
 use ApiMedia\Tgs\Data\Shared\TgsSectionData;
+use ApiMedia\Tgs\Support\Contracts\SiteCacheInvalidator;
 use ApiMedia\Tgs\TgsPlugin;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -11,6 +12,26 @@ final class TgsConfiguration
 {
     /** @var array<string, TgsPlugin> */
     public array $plugins = [];
+
+    /** @return class-string<SiteCacheInvalidator>|false */
+    public function siteCacheInvalidator(): string|false
+    {
+        $selection = null;
+        $selectedPanel = null;
+        foreach ($this->plugins as $panel => $plugin) {
+            $invalidator = $plugin->siteCacheInvalidator;
+            if ($invalidator === null) {
+                continue;
+            }
+            if ($selection !== null && $selection !== $invalidator) {
+                throw new \LogicException("Conflicting TGS site cache registrations on panels [{$selectedPanel}] and [{$panel}]");
+            }
+            $selection = $invalidator;
+            $selectedPanel = $panel;
+        }
+
+        return $selection ?? LaravelSiteCacheInvalidator::class;
+    }
 
     /** @return class-string<TgsCommonSettings> */
     public function commonSettingsClass(): string

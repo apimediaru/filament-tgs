@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace ApiMedia\Tgs\Events;
 
-use ApiMedia\Tgs\Listeners\InvalidateTgsHostCache;
 use ApiMedia\Tgs\Support\HostDescriptor;
+use ApiMedia\Tgs\Support\LaravelSiteCacheInvalidator;
 use Illuminate\Foundation\Events\Dispatchable;
 
 /**
- * Emitted AFTER a cache key was forgotten by {@see InvalidateTgsHostCache}, one event
+ * Emitted after each call to forget a cache key by {@see LaravelSiteCacheInvalidator}, one event
  * per key. Pure observability/orchestration hook (logging, cache warming, cascades, tests) — the
  * invalidation itself does not depend on any subscriber. See ADR-021 "how to track".
  */

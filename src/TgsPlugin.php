@@ -6,6 +6,7 @@ use ApiMedia\Tgs\Filament\Pages\ManageBlockLibrary;
 use ApiMedia\Tgs\Filament\Pages\ManageOrphanedBlocks;
 use ApiMedia\Tgs\Filament\Resources\CollectionResource;
 use ApiMedia\Tgs\Support\BlockVersionDiffer;
+use ApiMedia\Tgs\Support\Contracts\SiteCacheInvalidator;
 use ApiMedia\Tgs\Support\TgsAuthorization;
 use ApiMedia\Tgs\Support\TgsCommonSettings;
 use ApiMedia\Tgs\Support\TgsConfiguration;
@@ -22,6 +23,9 @@ final class TgsPlugin implements Plugin
 
     /** @var class-string<TgsCommonSettings>|null */
     public ?string $commonSettingsClass = null;
+
+    /** @var class-string<SiteCacheInvalidator>|false|null */
+    public string|false|null $siteCacheInvalidator = null;
 
     public array $hiddenBlocks = [];
 
@@ -56,6 +60,21 @@ final class TgsPlugin implements Plugin
             throw new \InvalidArgumentException('Invalid common settings: '.$class);
         }
         $this->commonSettingsClass = $class;
+
+        return $this;
+    }
+
+    /** @param  class-string<SiteCacheInvalidator>|false  $invalidator */
+    public function siteCache(string|false $invalidator): self
+    {
+        if ($invalidator !== false) {
+            $class = class_exists($invalidator) ? new \ReflectionClass($invalidator) : null;
+            if ($class === null || ! $class->implementsInterface(SiteCacheInvalidator::class) || ! $class->isInstantiable()) {
+                throw new \InvalidArgumentException('Invalid TGS site cache invalidator: '.$invalidator);
+            }
+        }
+
+        $this->siteCacheInvalidator = $invalidator;
 
         return $this;
     }

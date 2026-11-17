@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace ApiMedia\Tgs\Listeners;
 
-use ApiMedia\Tgs\Events\TgsCacheInvalidated;
 use ApiMedia\Tgs\Events\TgsContentChanged;
 use ApiMedia\Tgs\Services\HostModelResolver;
 use ApiMedia\Tgs\Support\Contracts\InvalidatesCache;
-use Illuminate\Support\Facades\Cache;
+use ApiMedia\Tgs\Support\TgsConfiguration;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -22,19 +21,23 @@ class InvalidateTgsHostCache
 
     public function handle(TgsContentChanged $event): void
     {
+        $invalidator = app(TgsConfiguration::class)->siteCacheInvalidator();
+        if ($invalidator === false) {
+            return;
+        }
+
         $host = $this->resolver->resolve($event->host);
 
         $keys = $host instanceof InvalidatesCache ? $host->cacheKeysToInvalidate() : [];
 
-        DB::afterCommit(function () use ($event, $keys): void {
+        DB::afterCommit(function () use ($event, $invalidator, $keys): void {
             $host = $this->resolver->resolve($event->host);
             if ($host instanceof InvalidatesCache) {
                 $keys = [...$keys, ...$host->cacheKeysToInvalidate()];
             }
 
-            foreach (array_unique($keys) as $key) {
-                Cache::forget($key);
-                TgsCacheInvalidated::dispatch($key, $event->host);
+            if ($keys !== []) {
+                app($invalidator)->invalidate($event->host, array_values(array_unique($keys)));
             }
         });
     }

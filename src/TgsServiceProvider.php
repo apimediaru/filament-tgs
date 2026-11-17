@@ -93,6 +93,7 @@ class TgsServiceProvider extends PackageServiceProvider
         // Panel configuration is needed by CLI/API too, before a request selects its panel.
         Filament::getPanels();
         app(TgsConfiguration::class)->commonSettingsClass();
+        app(TgsConfiguration::class)->siteCacheInvalidator();
         Livewire::addNamespace('tgs', classNamespace: Str::beforeLast(TgsCanvas::class, '\\'));
         Event::listen(TgsContentChanged::class, InvalidateTgsHostCache::class);
         Event::listen(ConversionHasBeenCompletedEvent::class, CaptureMediaConversionData::class);

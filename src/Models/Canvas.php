@@ -2,6 +2,7 @@
 
 namespace ApiMedia\Tgs\Models;
 
+use ApiMedia\Tgs\Models\Concerns\DeletesWithCanvasContent;
 use ApiMedia\Tgs\Services\CanvasPersistence;
 use ApiMedia\Tgs\Services\TgsCanvasClaims;
 use ApiMedia\Tgs\Support\Concerns\HasUuidTrait;
@@ -61,6 +62,7 @@ class Canvas extends Model implements HasUuid, InvalidatesCache
 {
     protected $table = 'tgs_canvases';
 
+    use DeletesWithCanvasContent;
     use HasUuidTrait;
 
     protected $fillable = [
