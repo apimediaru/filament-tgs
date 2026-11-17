@@ -3,6 +3,7 @@
 namespace ApiMedia\Tgs\Support\Filament\Concerns;
 
 use ApiMedia\Tgs\Support\Contracts\HasProvisionalRecord;
+use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Locked;
@@ -34,7 +35,7 @@ trait HandlesProvisionalCreate
         $draft = request()->query('draft');
 
         if (! is_string($draft) || $draft === '') {
-            $this->redirect(static::getResource()::getUrl('create', ['draft' => (string) Str::ulid()]));
+            $this->redirect($this->newDraftUrl());
 
             return;
         }
@@ -49,6 +50,22 @@ trait HandlesProvisionalCreate
         $this->fillForm();
 
         $this->previousUrl = url()->previous();
+    }
+
+    public function create(bool $another = false): void
+    {
+        parent::create($another);
+
+        // Filament clears the record after a successful "create another".
+        if ($another && $this->record === null) {
+            // Replace the saved draft's history entry so Cancel can leave the create page.
+            $this->js('url => window.location.replace(url)', $this->newDraftUrl());
+        }
+    }
+
+    private function newDraftUrl(): string
+    {
+        return static::getResource()::getUrl('create', ['draft' => (string) Str::ulid()]);
     }
 
     /**
@@ -67,6 +84,18 @@ trait HandlesProvisionalCreate
         abort_unless($record !== null && (string) $record->getKey() === (string) $model->getKey(), 404);
 
         return $record;
+    }
+
+    public function defaultForm(Schema $schema): Schema
+    {
+        $schema = parent::defaultForm($schema);
+
+        // Filament rebuilds the schema on Livewire updates.
+        if ($this->record !== null) {
+            $schema->model($this->record);
+        }
+
+        return $schema;
     }
 
     protected function handleRecordCreation(array $data): Model

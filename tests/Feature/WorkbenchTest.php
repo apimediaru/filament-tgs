@@ -5,6 +5,7 @@ namespace ApiMedia\Tgs\Tests\Feature;
 use ApiMedia\Tgs\Enums\TgsNamedCanvas;
 use ApiMedia\Tgs\Filament\Pages\ManageBlockLibrary;
 use ApiMedia\Tgs\Filament\Resources\CollectionResource;
+use ApiMedia\Tgs\Filament\Resources\CollectionResource\Pages\CreateCollection;
 use ApiMedia\Tgs\Livewire\TgsCanvas;
 use ApiMedia\Tgs\Models\Canvas;
 use ApiMedia\Tgs\Models\Collection;
@@ -13,8 +14,10 @@ use ApiMedia\Tgs\Support\BlockTree;
 use ApiMedia\Tgs\Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
+use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
+use Workbench\App\Filament\Resources\TgsDemoResource\Pages\CreateTgsDemo;
 use Workbench\App\Models\TgsDemo;
 use Workbench\App\Models\User;
 use Workbench\App\Providers\WorkbenchServiceProvider;
@@ -28,6 +31,79 @@ class WorkbenchTest extends TestCase
     {
         parent::setUp();
         $this->app->register(WorkbenchServiceProvider::class);
+    }
+
+    /** @return iterable<string, array{class-string<CreateCollection|CreateTgsDemo>, class-string<Collection|TgsDemo>}> */
+    public static function provisionalCreatePages(): iterable
+    {
+        yield 'collection' => [CreateCollection::class, Collection::class];
+        yield 'demo host' => [CreateTgsDemo::class, TgsDemo::class];
+    }
+
+    /**
+     * @param  class-string<CreateCollection|CreateTgsDemo>  $page
+     * @param  class-string<Collection|TgsDemo>  $model
+     */
+    #[Test]
+    #[DataProvider('provisionalCreatePages')]
+    public function create_form_keeps_its_provisional_record_through_refresh_and_save(string $page, string $model): void
+    {
+        $this->actingAs(User::query()->create(['name' => 'Editor', 'email' => 'editor@tgs.test', 'password' => 'password']));
+
+        $form = Livewire::withQueryParams(['draft' => 'workbench-provisional'])->test($page);
+        $component = $form->instance();
+        $this->assertInstanceOf($page, $component);
+        $record = $component->getRecord();
+        $this->assertInstanceOf($model, $record);
+        $this->assertTrue($record->isProvisional());
+
+        $form->call('$refresh')->assertSuccessful();
+        $component = $form->instance();
+        $this->assertInstanceOf($page, $component);
+        $this->assertTrue($component->getSchema('form')?->getModelInstance()?->is($record));
+
+        $form->fillForm(['name' => 'Saved draft'])->call('create')->assertHasNoFormErrors()->assertRedirect();
+        $saved = $model::query()->sole();
+        $this->assertSame('Saved draft', $saved->name);
+        $this->assertTrue($saved->is($record));
+    }
+
+    /**
+     * @param  class-string<CreateCollection|CreateTgsDemo>  $page
+     * @param  class-string<Collection|TgsDemo>  $model
+     */
+    #[Test]
+    #[DataProvider('provisionalCreatePages')]
+    public function create_another_opens_a_fresh_draft_after_a_successful_save(string $page, string $model): void
+    {
+        $this->actingAs(User::query()->create(['name' => 'Editor', 'email' => 'editor@tgs.test', 'password' => 'password']));
+
+        $form = Livewire::withQueryParams(['draft' => 'first-tab'])->test($page);
+        $form->call('createAnother')->assertHasFormErrors(['name' => 'required'])->assertNoRedirect()->assertNoJs();
+        $first = $model::findProvisional('first-tab');
+        $this->assertNotNull($first);
+
+        $form->fillForm(['name' => 'First record'])->call('createAnother')->assertHasNoFormErrors()->assertNoRedirect();
+        $redirect = $form->__get('effects')['xjs'][0]['params'][0] ?? null;
+        $this->assertIsString($redirect);
+        parse_str((string) parse_url($redirect, PHP_URL_QUERY), $query);
+        $draft = $query['draft'] ?? null;
+        $this->assertIsString($draft);
+        $this->assertNotSame('first-tab', $draft);
+        $this->assertSame($page::getUrl(['draft' => $draft]), $redirect);
+        $form->assertJs('url => window.location.replace(url)', $redirect);
+
+        $secondForm = Livewire::withQueryParams($query)->test($page)->assertSuccessful();
+        $second = $model::findProvisional($draft);
+        $this->assertNotNull($second);
+        $this->assertFalse($second->is($first));
+        Livewire::withQueryParams($query)->test($page)->assertSuccessful();
+        $this->assertTrue($model::findProvisional($draft)?->is($second));
+
+        $secondForm->fillForm(['name' => 'Second record'])->call('create')->assertHasNoFormErrors()->assertRedirect();
+        $this->assertSame('First record', $model::query()->findOrFail($first->getKey())->name);
+        $this->assertSame('Second record', $model::query()->findOrFail($second->getKey())->name);
+        $this->assertSame(2, $model::query()->count());
     }
 
     #[Test]

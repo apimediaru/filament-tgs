@@ -5,6 +5,14 @@ breaking changes; patch releases preserve the public API.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-17
+
+### Fixed
+
+- Keep the provisional record attached when Filament rebuilds a create form.
+- Save and create another opens a blank draft at a fresh URL. Replacing the
+  history entry lets Cancel return to the previous page.
+
 ## [0.1.2] - 2026-11-17
 
 ### Added
@@ -65,5 +73,6 @@ breaking changes; patch releases preserve the public API.
 - Demo seeding preserves existing edited content and account passwords.
 - Collection and lock action labels respect the active locale.
 
-[Unreleased]: https://github.com/apimediaru/filament-tgs/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/apimediaru/filament-tgs/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/apimediaru/filament-tgs/compare/v0.1.2...v0.1.3
 [0.1.0]: https://github.com/apimediaru/filament-tgs/releases/tag/v0.1.0
