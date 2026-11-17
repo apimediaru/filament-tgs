@@ -5,7 +5,27 @@ breaking changes; patch releases preserve the public API.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-17
+
+### Added
+
+- Site-wide `commonSettings()` descriptor with shared section DTO selection for
+  runtime and TypeScript, consistent across panels and CLI.
+- Check common form paths and collisions with `tgs:check`; preserve inaccessible
+  saved fields during canvas/orphan edits, including nested repeater values.
+- Document shared settings, per-block DTO replacements and published Blade overrides;
+  cover local page/partial rendering, view cache and package fallback.
+
 ### Fixed
+
+- Derive edit schemas from the stored block type and verify root placements; keep
+  draft destinations in locked server state instead of trusting action arguments.
+- Reject stale repeater edits under a database row lock, without partial writes or
+  history entries; cover competing PostgreSQL connections and reopening the form.
+  Build the initial snapshot from the same payload as the form, including changes
+  made by another editor during form hydration.
+- Accept finite nested DTO paths that revisit a class in `tgs:check`, retaining
+  cycle detection for legacy flattened field lookup.
 
 - Reject non-HTTP(S) and relative embedded media URLs in previews and `embedded_src`,
   preserving the stored `source`. Escape preview URL attributes and normalize

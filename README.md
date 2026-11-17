@@ -4,9 +4,6 @@
 библиотека, коллекции, переиспользование, медиа, история, блокировки и корзина.
 Namespace `ApiMedia\Tgs`. Вывод — типизированный JSON; фронтенд сайта выбирает потребитель.
 
-Первый релиз: `0.1.0`. До появления тега и версии на Packagist команды установки
-ниже описывают целевой выпуск, а не подтверждают его публикацию.
-
 ## Установка в Laravel / Filament
 
 В приложении уже должна быть установлена панель Filament 5. Если её ещё нет:
@@ -153,6 +150,89 @@ class Notice extends TgsBlock
 Регистрация: `TgsPlugin::make()->hosts([Page::class])->blocks([Notice::class])`.
 После добавления проверьте `php artisan tgs:check` и генерацию типов. Nullable-поля
 присутствуют в выводе даже без значения. Неизвестный тип читается как `UnknownBlockData`.
+
+## Общая секция сайта (с 0.1.2)
+
+Одна регистрация применяется ко всем блокам, использующим стандартную секцию,
+во всех панелях, API и CLI, включая CLI без выбранной панели:
+
+```php
+TgsPlugin::make()->hosts([Page::class])->commonSettings(\App\Tgs\SiteCommonSettings::class);
+```
+
+`app/Tgs/SiteCommonSettings.php`:
+
+```php
+namespace App\Tgs;
+
+use ApiMedia\Tgs\Support\TgsCommonSettings;
+use App\Data\SiteSectionData;
+use Filament\Forms\Components\TextInput;
+
+class SiteCommonSettings extends TgsCommonSettings
+{
+    public static function dataClass(): string { return SiteSectionData::class; }
+
+    public function heading(array $fields): array
+    {
+        return [...$fields, TextInput::make('section_icon')->label('Иконка заголовка')];
+    }
+}
+```
+
+`app/Data/SiteSectionData.php`:
+
+```php
+namespace App\Data;
+
+use ApiMedia\Tgs\Data\Shared\TgsSectionData;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+
+#[TypeScript]
+class SiteSectionData extends TgsSectionData
+{
+    public ?string $section_icon = null;
+
+    public static function fromStored(array $raw): static
+    {
+        /** @var static $dto */
+        $dto = parent::fromStored($raw);
+        $dto->section_icon = isset($raw['section_icon']) ? (string) $raw['section_icon'] : null;
+        return $dto;
+    }
+}
+```
+
+Сохранённое поле — `Block.data.section_icon`, вывод API — `section.section_icon`.
+Форма, storage и DTO — разные контракты: свойство DTO само не читает storage.
+Базовый конструктор и стандартные поля копировать не нужно. Второй встроенный блок
+подхватит расширение без нового DTO или списка ключей. Для собственного блока используйте
+`TgsSectionData::fromStored()` как в рецепте выше. При изменении только подписей,
+options, validation или видимости переопределять `dataClass()` не требуется.
+
+Методы `section(array $fields)` и `container(array $fields)` аналогично меняют
+настройки секции и её внутренней обёртки. Это не блок-контейнер с дочерним слотом.
+Компоненты создаются заново: порядок default → site → override блока → контекст
+редактора. Override блока без `parent` полностью заменяет соответствующую группу.
+Одинаковая регистрация в нескольких панелях разрешена; разные классы — ошибка,
+панель без регистрации использует общую настройку сайта.
+
+Скрытые, отключённые и временно отсутствующие поля сохраняют старые значения при
+редактировании; клиент не может записать их через скрытое поле. Видимый `null` очищает
+значение. Удаление строки repeater удаляет строку целиком. Если список изменился в другом
+сохранении после открытия формы, сохранение отклоняется целиком: откройте блок заново
+и повторите изменение. Проверка снимка и запись выполняются под одной блокировкой строки;
+изменение другого поля само по себе не создаёт конфликт списка. Новые правила проверяются
+при сохранении доступных полей; старые записи автоматически не мигрируют.
+Если убрать регистрацию, дополнительные ключи остаются в storage, но стандартный
+DTO их не выдаёт. При возврате регистрации они снова доступны.
+
+Запустите `php artisan tgs:check`, `php artisan typescript:transform` и
+`php artisan tgs:generate-block-union`. Общий DTO должен иметь собственный
+`#[TypeScript]` и попадать в `auto_discover_types` сайта (обычно `app_path()`).
+Вложенные DTO также помечайте атрибутом. Тип `section` выбирается из той же регистрации,
+отдельная ручная TypeScript-подмена не нужна. Union берёт DTO зарегистрированных блоков,
+включая замену одного блока из следующего рецепта.
 
 ## Общая проектная категория
 
@@ -310,7 +390,7 @@ class SitePicture extends Picture
 неизвестных провайдеров; прочие схемы и относительные адреса дают `null`, превью
 не создаёт iframe. Из iframe-кода читается только URL; его остальные атрибуты
 не переносятся. Адреса без схемы из шаблонов известных провайдеров приводятся к HTTPS.
-Это изменение в Unreleased: старые `source` сохраняются, но небезопасные и
+Начиная с 0.1.2: старые `source` сохраняются, но небезопасные и
 относительные адреса больше не отображаются. Допуск HTTP/HTTPS не является
 проверкой доверия к содержимому внешнего сайта.
 
@@ -459,3 +539,45 @@ CI: PHP 8.3/8.4 × SQLite/PostgreSQL, плюс сборка темы. PostgreSQL
 
 Это не установка опубликованной версии. В 0.x минорный релиз может менять API;
 патч-релиз сохраняет публичные контракты. [Изменения](CHANGELOG.md) · [Словарь](GLOSSARY.md).
+
+## Локальные Blade overrides
+
+Provider использует `hasViews()`, namespace — `tgs`. Опубликовать шаблоны:
+
+```bash
+php artisan vendor:publish --tag=tgs-views
+```
+
+Источник: `vendor/apimediaru/filament-tgs/resources/views/`.
+Локальная копия: `resources/views/vendor/tgs/`. Например, измените
+`resources/views/vendor/tgs/_orphaned-blocks-list.blade.php`, добавив:
+
+```blade
+<p class="text-violet-700">Локальная подсказка сайта</p>
+```
+
+`view('tgs::_orphaned-blocks-list')` и вложенные `@include('tgs::…')` выберут
+локальную копию. Страницы Filament и Livewire также используют этот namespace;
+компоненты `x-filament-*` принадлежат Filament и этим тегом не публикуются.
+После изменения или удаления override очистите compiled views:
+
+```bash
+php artisan view:clear
+# Если в deploy используется прогрев:
+php artisan view:cache
+```
+
+Удаление локального файла возвращает fallback из пакета. Для темы
+`resources/css/filament/admin/theme.css` нужны оба источника Tailwind:
+
+```css
+@source '../../../../vendor/apimediaru/filament-tgs/resources/views/**/*.blade.php';
+@source '../../../views/vendor/tgs/**/*.blade.php';
+```
+
+Первый собирает классы поставляемых шаблонов, второй — новые классы локальных копий.
+После изменений классов выполните `npm run build`. Blade cache не пересобирает CSS. После обновления кода или регистрации настроек
+в приложении с Octane выполните `php artisan octane:reload` в рамках deploy.
+Обновление Composer не обновляет опубликованные копии: сравнивайте используемые
+файлы с новой версией пакета вручную. Не запускайте publish с `--force`, если нужно
+сохранить локальные изменения. Лучше оставить только действительно изменённые файлы.

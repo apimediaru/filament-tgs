@@ -16,6 +16,7 @@ use ApiMedia\Tgs\Services\CanvasPersistence;
 use ApiMedia\Tgs\Services\CanvasTreeReader;
 use ApiMedia\Tgs\Services\HostLabelResolver;
 use ApiMedia\Tgs\Services\TgsInsertionPolicy;
+use ApiMedia\Tgs\Support\BlockEditData;
 use ApiMedia\Tgs\Support\HostDescriptor;
 use ApiMedia\Tgs\Support\TgsAuthorization;
 use ApiMedia\Tgs\Support\TgsBlock;
@@ -68,6 +69,13 @@ class TgsCanvas extends Component implements HasActions, HasSchemas
     }
     use InteractsWithSchemas;
 
+    /** Server-owned repeater items preserve hidden values across reorder/delete. */
+    #[Locked]
+    public array $blockEditItems = [];
+
+    /** Same-request payload used to fill the form before repeater UUIDs exist. */
+    private array $blockEditOriginal = [];
+
     #[Locked]
     public int $canvasId;
 
@@ -99,7 +107,12 @@ class TgsCanvas extends Component implements HasActions, HasSchemas
      * "модалка не открыта", либо "открыта для правки уже committed блока" — в обоих
      * случаях unmountAction() не должен ничего удалять.
      */
+    #[Locked]
     public ?string $draftBlockId = null;
+
+    /** Destination chosen by the server before a draft has a placement. */
+    #[Locked]
+    public array $draftPlacement = [];
 
     public function hydrate(): void
     {
@@ -269,7 +282,26 @@ class TgsCanvas extends Component implements HasActions, HasSchemas
             return true;
         }
 
-        return $this->isLibraryHost() && (bool) ($arguments['isRoot'] ?? false);
+        return $this->isLibraryHost() && $this->isRootBlockOnEdit($arguments);
+    }
+
+    private function isRootBlockOnEdit(array $arguments): bool
+    {
+        if (! ($arguments['isRoot'] ?? false)) {
+            return false;
+        }
+        $host = $this->host();
+        $blockId = $arguments['block'] ?? null;
+        if ($blockId !== null && $blockId === $this->draftBlockId) {
+            return ($this->draftPlacement['containerType'] ?? null) === $host->containerType
+                && ($this->draftPlacement['containerId'] ?? null) === $host->containerId
+                && ($this->draftPlacement['slot'] ?? null) === $host->slot;
+        }
+
+        return TgsModels::placement()::query()->where('block_id', $blockId)
+            ->where('container_type', $host->containerType)
+            ->where('container_id', $host->containerId)
+            ->where('slot', $host->slot)->exists();
     }
 
     public function addRootBlock(string $type, ?int $position = null): void
@@ -399,6 +431,7 @@ class TgsCanvas extends Component implements HasActions, HasSchemas
      */
     private function openDraftEditor(string $blockId, string $type, bool $isRoot, string $containerType, string $containerId, string $slot, ?int $position): void
     {
+        $this->draftPlacement = compact('containerType', 'containerId', 'slot', 'position');
         $this->mountAction('editBlockAction', [
             'block' => $blockId,
             'type' => $type,
@@ -1715,8 +1748,19 @@ class TgsCanvas extends Component implements HasActions, HasSchemas
     public function editBlockAction(): Action
     {
         return Action::make('editBlockAction')
+            ->databaseTransaction()
+            ->beforeFormValidated(function (): void {
+                app(BlockEditData::class)->prepareValidation($this->getMountedActionSchema());
+            })
+            ->afterFormFilled(function (): void {
+                $this->blockEditItems = app(BlockEditData::class)->captureItems(
+                    $this->getMountedActionSchema(), $this->blockEditOriginal,
+                );
+                $this->blockEditOriginal = [];
+            })
             ->fillForm(function (array $arguments): array {
                 $block = TgsModels::block()::find($arguments['block'] ?? null);
+                $this->blockEditOriginal = $block->data ?? [];
 
                 // `id` isn't part of $block->data (a real Eloquent column, not a form
                 // field) — but media-backed blocks (Picture/Gallery) read it via
@@ -1725,15 +1769,15 @@ class TgsCanvas extends Component implements HasActions, HasSchemas
                 // null and firstOrCreate(['id' => null], ...) violates the NOT NULL
                 // constraint on blocks.id.
                 return [
-                    ...($block !== null ? $block->data : []),
+                    ...$this->blockEditOriginal,
                     'id' => $arguments['block'] ?? null,
                     '_name' => $block?->name,
                 ];
             })
             ->schema(function (array $arguments, Schema $schema): array {
                 $fields = self::blockEditSchema(
-                    $arguments['type'] ?? null,
-                    (bool) ($arguments['isRoot'] ?? false),
+                    TgsModels::block()::find($arguments['block'] ?? null)?->type,
+                    $this->isRootBlockOnEdit($arguments),
                     $this->isCollectionHost(),
                     $schema,
                 );
@@ -1799,7 +1843,7 @@ class TgsCanvas extends Component implements HasActions, HasSchemas
             // close action. In normal mode the closure returns null, leaving Filament's default
             // submit action untouched.
             ->modalSubmitAction(fn (): ?bool => $this->readonly ? false : null)
-            ->action(function (array $data, array $arguments): void {
+            ->action(function (array $data, array $arguments, Schema $schema): void {
                 $this->guardWritable();
 
                 if (TgsBlock::isLockedForCurrentUser($arguments['block'] ?? null)) {
@@ -1813,11 +1857,10 @@ class TgsCanvas extends Component implements HasActions, HasSchemas
                 $name = trim((string) ($data['_name'] ?? ''));
                 unset($data['_name']);
 
-                $block = TgsModels::block()::find($arguments['block']);
+                $block = TgsModels::block()::query()->lockForUpdate()->find($arguments['block']);
                 $wasDraft = $block !== null && $block->committed_at === null;
                 if ($block !== null) {
-                    $descriptor = app(TgsBlockRegistry::class)->get($block->type);
-                    $data = $descriptor?->preserveHiddenMetadata($block->data, $data, Schema::make($this)) ?? $data;
+                    $data = app(BlockEditData::class)->merge($block->data, $data, $schema, $this->blockEditItems);
                 }
 
                 if ($wasDraft) {
@@ -1825,10 +1868,10 @@ class TgsCanvas extends Component implements HasActions, HasSchemas
                     app(CanvasPersistence::class)->commitDraft(
                         $this->host(),
                         $block->id,
-                        $arguments['containerType'],
-                        $arguments['containerId'],
-                        $arguments['slot'],
-                        $arguments['position'] ?? null,
+                        $this->draftPlacement['containerType'],
+                        $this->draftPlacement['containerId'],
+                        $this->draftPlacement['slot'],
+                        $this->draftPlacement['position'],
                         $data,
                     );
                     $this->draftBlockId = null;
