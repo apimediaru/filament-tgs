@@ -33,15 +33,38 @@ use App\Models\Page;
 return $panel->plugin(TgsPlugin::make()->hosts([Page::class]));
 ```
 
-В CSS темы Filament, например `resources/css/filament/admin/theme.css`, добавьте:
+### Тема выбранной панели
+
+**Новая тема.** Запустите генератор Filament, подставив ID панели из её `->id(...)`.
+
+```bash
+php artisan make:filament-theme --panel=admin
+```
+
+На вопрос о сборке ответьте «No», чтобы собрать тему после добавления `@source`.
+Проверьте, что путь к теме появился в `input` Laravel Vite plugin и в
+`->viteTheme(...)` провайдера выбранной панели. Если генератор вывел ручные шаги,
+добавьте недостающие настройки.
+
+**Готовая тема.** Откройте CSS-файл, который уже подключён к выбранной панели, и
+добавьте директиву в этот файл. В Filament 5.10.3 генератор с флагом
+`--no-interaction` принимает «Yes» по умолчанию и может перезаписать существующий
+`theme.css` даже без `--force`.
+
+Для `resources/css/filament/admin/theme.css` подходит следующий путь.
 
 ```css
 @source '../../../../vendor/apimediaru/filament-tgs/resources/views/**/*.blade.php';
 ```
 
-Путь считается от CSS-файла. Подключите тему в PanelProvider через `viteTheme()`
-и пересоберите её (`npm run build`). Редактор использует Livewire и Filament Alpine
-sortable; самостоятельной JS-сборки пакета у потребителя нет.
+Путь считается от CSS-файла. Если вы переопределяете шаблоны ТГС, добавьте также
+[источник локальных Blade overrides](#локальные-blade-overrides). Затем соберите тему.
+
+```bash
+npm run build
+```
+
+Для редактора достаточно JS-ассетов Livewire и Filament Alpine sortable.
 
 ## Минимальный хост и поле редактора
 
