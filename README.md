@@ -33,15 +33,40 @@ use App\Models\Page;
 return $panel->plugin(TgsPlugin::make()->hosts([Page::class]));
 ```
 
-В CSS темы Filament, например `resources/css/filament/admin/theme.css`, добавьте:
+### Тема выбранной панели
 
-```css
-@source '../../../../vendor/apimediaru/filament-tgs/resources/views/**/*.blade.php';
+**Новая тема.** Запустите генератор Filament, подставив ID панели из её `->id(...)`.
+
+```bash
+php artisan make:filament-theme --panel=admin
 ```
 
-Путь считается от CSS-файла. Подключите тему в PanelProvider через `viteTheme()`
-и пересоберите её (`npm run build`). Редактор использует Livewire и Filament Alpine
-sortable; самостоятельной JS-сборки пакета у потребителя нет.
+На вопрос о сборке ответьте «No», чтобы собрать тему после добавления `@source`.
+Проверьте, что путь к теме появился в `input` Laravel Vite plugin и в
+`->viteTheme(...)` провайдера выбранной панели. Если генератор вывел ручные шаги,
+добавьте недостающие настройки.
+
+**Готовая тема.** Откройте CSS-файл, который уже подключён к выбранной панели, и
+добавьте директиву в этот файл. В Filament 5.10.3 генератор с флагом
+`--no-interaction` принимает «Yes» по умолчанию и может перезаписать существующий
+`theme.css` даже без `--force`.
+
+Для `resources/css/filament/admin/theme.css` подходит следующий путь.
+
+```css
+@source '../../../../vendor/apimediaru/filament-tgs/{resources/views/**/*.blade.php,src/**/*.php}';
+```
+
+Путь считается от CSS-файла. Директива включает Blade-шаблоны и классы,
+которые пакет выводит из PHP, например `aspect-video` у превью встроенного видео.
+Если вы переопределяете шаблоны ТГС, добавьте также
+[источник локальных Blade overrides](#локальные-blade-overrides). Затем соберите тему.
+
+```bash
+npm run build
+```
+
+Для редактора достаточно JS-ассетов Livewire и Filament Alpine sortable.
 
 ## Минимальный хост и поле редактора
 
@@ -207,6 +232,156 @@ class Notice extends TgsBlock
 Регистрация: `TgsPlugin::make()->hosts([Page::class])->blocks([Notice::class])`.
 После добавления проверьте `php artisan tgs:check` и генерацию типов. Nullable-поля
 присутствуют в выводе даже без значения. Неизвестный тип читается как `UnknownBlockData`.
+
+## Поле редактора с JavaScript
+
+Для интерактивного поля в модалке ТГС добавьте `ViewField` в схему дескриптора.
+Ниже кнопка меняет число в черновом состоянии формы. Кнопка сохранения модалки
+применяет правила Filament, после чего канвас сохраняет число в JSON блока.
+
+`app/Tgs/Counter.php`
+
+```php
+namespace App\Tgs;
+
+use ApiMedia\Tgs\Support\TgsBlock;
+use App\Data\CounterData;
+use Filament\Forms\Components\ViewField;
+
+class Counter extends TgsBlock
+{
+    public const TYPE = 'counter';
+
+    public static function blockType(): string { return self::TYPE; }
+    public static function dataClass(): string { return CounterData::class; }
+    public function getBlockLabel(): string { return 'Счётчик'; }
+
+    public function schema(): array
+    {
+        return [
+            ViewField::make('count')
+                ->label('Счётчик')
+                ->view('filament.forms.counter')
+                ->default(0)
+                ->required()
+                ->rule('integer:strict'),
+        ];
+    }
+}
+```
+
+`app/Data/CounterData.php`
+
+```php
+namespace App\Data;
+
+use ApiMedia\Tgs\Data\Contracts\ResolvesFromStored;
+use ApiMedia\Tgs\Data\Shared\TgsSectionData;
+use App\Tgs\Counter;
+use Illuminate\Database\Eloquent\Model;
+use Spatie\LaravelData\Data;
+use Spatie\TypeScriptTransformer\Attributes\LiteralTypeScriptType;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+
+#[TypeScript]
+class CounterData extends Data implements ResolvesFromStored
+{
+    #[LiteralTypeScriptType('"'.Counter::TYPE.'"')]
+    public string $type = Counter::TYPE;
+
+    public function __construct(
+        public string $id,
+        public TgsSectionData $section,
+        public ?int $count,
+    ) {}
+
+    public static function fromStored(array $raw, Model $model): static
+    {
+        $count = $raw['count'] ?? null;
+
+        return new static(
+            (string) ($raw['id'] ?? ''),
+            TgsSectionData::fromStored($raw),
+            is_int($count) ? $count : null,
+        );
+    }
+}
+```
+
+Добавьте `Counter::class` в список `blocks()` существующего `TgsPlugin` в провайдере
+панели. Для поля достаточно обычного Blade-шаблона и штатного Livewire-компонента
+`TgsCanvas`. Регистрация Filament Resource нужна для страницы модели-хоста.
+
+В `boot()` сервис-провайдера сайта зарегистрируйте JS-модуль через Filament.
+Выберите уникальное имя ресурса в пространстве имён сайта и используйте ту же пару
+имён в Blade. При развёртывании после сборки выполните `php artisan filament:assets`.
+
+```php
+use Filament\Support\Assets\AlpineComponent;
+use Filament\Support\Facades\FilamentAsset;
+
+FilamentAsset::register([
+    AlpineComponent::make('counter-field', resource_path('js/counter-field.js')),
+], package: 'website/admin');
+```
+
+`resources/js/counter-field.js`
+
+```js
+export default function counterField({ wire, path }) {
+    return {
+        get value() {
+            return wire.$get(path)
+        },
+        increment() {
+            wire.$set(path, (this.value ?? 0) + 1, false)
+        },
+    }
+}
+```
+
+`resources/views/filament/forms/counter.blade.php`
+
+```blade
+<x-dynamic-component :component="$getFieldWrapperView()" :field="$field">
+    <div
+        x-load
+        x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('counter-field', package: 'website/admin') }}"
+        x-data="counterField({ wire: $wire, path: @js($getStatePath()) })"
+    >
+        <output x-text="value ?? '—'"></output>
+        <button
+            id="{{ $getId() }}"
+            type="button"
+            aria-label="Увеличить счётчик"
+            x-on:click="increment()"
+            @disabled($isDisabled())
+        >
+            Увеличить
+        </button>
+    </div>
+</x-dynamic-component>
+```
+
+`x-load` подключает модуль при появлении поля, в том числе если модалку впервые
+открыли после SPA-перехода. Для модулей с зависимостями укажите путь к собранному
+ES-модулю. JavaScript поставляет разработчик сайта. Из сохранённых данных JS
+получает только значение поля. [Документация Filament по ресурсам](https://filamentphp.com/docs/5.x/advanced/assets#asynchronous-alpinejs-components).
+
+`$getStatePath()` возвращает путь к полю текущего экземпляра формы, например
+`mountedActions.0.data.count`. Третий аргумент `false` в `$wire.$set()`
+откладывает отправку до следующего Livewire-запроса. После валидации
+`TgsCanvas::editBlockAction()` передаёт данные в `CanvasPersistence`.
+`$isDisabled()` учитывает readonly канваса. В этом режиме канвас убирает кнопку
+сохранения и запрещает запись на сервере.
+
+Проверьте изменение и сохранение одного из двух блоков, повторное открытие
+и перезагрузку страницы. Второй блок должен сохранить своё число.
+Проверьте readonly и передачу дробного числа при сохранении. Правило
+`integer:strict` отклонит сохранение и оставит прежнее значение в БД.
+У старого блока без `count` DTO выдаёт `null`, а первый клик меняет значение на `1`.
+Запустите `php artisan tgs:check` и обе команды из [раздела TypeScript](#typescript).
+Ожидаемый тип поля — `number | null` в `App.Data.CounterData` внутри union блоков.
 
 ## Общая секция сайта (с 0.1.2)
 
@@ -572,6 +747,11 @@ vendor/bin/testbench db:seed --class='Workbench\Database\Seeders\DatabaseSeeder'
 типов доступны через демо и коллекцию, включая вложенные вкладки/аккордеон.
 Историю и корзину наполняйте изменениями экспериментальной записи.
 
+В отдельной записи «Демо: счётчик» откройте блок «Счётчик», нажмите «Увеличить на 1»
+и отправьте форму блока. Карточка покажет сохранённое число рядом с названием,
+в том числе после перезагрузки страницы. В уже установленном Workbench запустите сидер выше и
+`vendor/bin/testbench filament:assets`, чтобы добавить запись и опубликовать JS поля.
+
 В Docker стартера используйте `make tgs-test`, `make tgs-analyse`, `make tgs-lint`,
 `make tgs-workbench-serve`; PHP/Composer/Node запускайте в app-контейнере.
 
@@ -624,15 +804,14 @@ php artisan view:clear
 php artisan view:cache
 ```
 
-Удаление локального файла возвращает fallback из пакета. Для темы
-`resources/css/filament/admin/theme.css` нужны оба источника Tailwind:
+Удаление локального файла возвращает fallback из пакета. К источнику пакета
+добавьте источник локальных шаблонов. Для темы
+`resources/css/filament/admin/theme.css` это следующий путь.
 
 ```css
-@source '../../../../vendor/apimediaru/filament-tgs/resources/views/**/*.blade.php';
 @source '../../../views/vendor/tgs/**/*.blade.php';
 ```
 
-Первый собирает классы поставляемых шаблонов, второй — новые классы локальных копий.
 После изменений классов выполните `npm run build`. Blade cache не пересобирает CSS. После обновления кода или регистрации настроек
 в приложении с Octane выполните `php artisan octane:reload` в рамках deploy.
 Обновление Composer не обновляет опубликованные копии: сравнивайте используемые
