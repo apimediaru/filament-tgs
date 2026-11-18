@@ -5,6 +5,16 @@ breaking changes; patch releases preserve the public API.
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-11-19
+
+### Added
+
+- Russian and English customer guides bundled in `resources/docs`, discovered
+  through Composer metadata by `apimediaru/filament-documentation`.
+- Optional instructions link in editable and read-only canvases.
+
+## [0.1.4] - 2026-11-17
+
 ### Added
 
 - Configure public site cache invalidation through `TgsPlugin::siteCache()`.
@@ -85,6 +95,8 @@ breaking changes; patch releases preserve the public API.
 - Demo seeding preserves existing edited content and account passwords.
 - Collection and lock action labels respect the active locale.
 
-[Unreleased]: https://github.com/apimediaru/filament-tgs/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/apimediaru/filament-tgs/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/apimediaru/filament-tgs/compare/v0.1.4...v0.1.5
+[0.1.4]: https://github.com/apimediaru/filament-tgs/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/apimediaru/filament-tgs/compare/v0.1.2...v0.1.3
 [0.1.0]: https://github.com/apimediaru/filament-tgs/releases/tag/v0.1.0

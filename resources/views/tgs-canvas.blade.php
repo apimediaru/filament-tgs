@@ -44,6 +44,11 @@
     wrapper: inside it, space-y-3 would add a margin-top before them, showing up as a phantom gap
     under the content (most visible on an empty canvas, where there's nothing else below). --}}
     <div class="space-y-3">
+        @if ($documentationUrl = \ApiMedia\Tgs\Support\TgsDocumentation::url())
+            <a href="{{ $documentationUrl }}" target="_blank" rel="noopener noreferrer">
+                {{ __('tgs::documentation.instruction') }}
+            </a>
+        @endif
         {{-- Read-only (Task 3, read-only design spec §3): every mutating affordance is simply not
         rendered rather than dimmed — the add-block bar (header + footer), the insert drawer, and
         the per-node add/insert-gap buttons all disappear. The tree itself, previews, badges and
