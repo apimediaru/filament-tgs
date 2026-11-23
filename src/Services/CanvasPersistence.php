@@ -19,6 +19,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 use function array_fill;
 use function array_is_list;
@@ -130,6 +131,22 @@ class CanvasPersistence
             $this->writeSnapshotSlot($host, $host->containerType, $host->containerId, $host->slot, $tree, $changed);
             $this->signalChanged($host, $changed);
         });
+    }
+
+    /**
+     * @internal Keep raw child snapshots out of BlockSpec data, so only validated slots can introduce placements.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function assertSeedFields(array $data): void
+    {
+        if (array_key_exists('id', $data) || array_key_exists('uuid', $data)) {
+            throw new InvalidArgumentException('Factory blocks assign their own id and media uuid.');
+        }
+
+        if ($this->takeSnapshotChildren($data) !== []) {
+            throw new InvalidArgumentException('Declare factory block children through BlockSpec slots.');
+        }
     }
 
     /**

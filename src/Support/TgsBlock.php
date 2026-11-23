@@ -213,6 +213,15 @@ abstract class TgsBlock
     }
 
     /**
+     * Explicit disk for this block's content media. Use the same value in the editor upload field.
+     * Null leaves disk selection to the media collection and the uploader's defaults.
+     */
+    public static function contentMediaDisk(): ?string
+    {
+        return null;
+    }
+
+    /**
      * Hidden `uuid` field shared by media blocks (Picture/Gallery) to scope their upload
      * field's media to this block instance. Uses `afterStateHydrated()`, not `default()`:
      * `editBlockAction()->fillForm()` always supplies a non-null array (even for a brand-new

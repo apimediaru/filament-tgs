@@ -5,6 +5,22 @@ breaking changes; patch releases preserve the public API.
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-11-23
+
+### Added
+
+- Fill independent canvases from a Laravel model factory using `withTgs()` and
+  block recipes. Recipes support registered custom blocks, nested slots, and
+  ordered media. A failed create rolls back the current model and its content.
+- Generate `KnownBlock` from the registered block types.
+- Document factory recipes, custom block media, and Docker conversion checks.
+
+### Fixed
+
+- Restore ordinary fields and canvas content when reopening the same Filament
+  create draft in the same session.
+- Describe both existing JSON shapes of `UnknownBlock.data` in TypeScript.
+
 ## [0.1.5] - 2026-11-19
 
 ### Added

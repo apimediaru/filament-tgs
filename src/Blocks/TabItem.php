@@ -3,6 +3,7 @@
 namespace ApiMedia\Tgs\Blocks;
 
 use ApiMedia\Tgs\Enums\ContentBlockType;
+use ApiMedia\Tgs\Support\BlockSpec;
 use ApiMedia\Tgs\Support\TgsBlock;
 use ApiMedia\Tgs\Support\TgsCategory;
 use Closure;
@@ -11,11 +12,18 @@ use Illuminate\Contracts\Support\Htmlable;
 
 class TabItem extends TgsBlock
 {
+    private const CONTENT = 'content';
+
     protected string|\BackedEnum|Htmlable|Closure|null $icon = 'heroicon-o-window';
 
     public static function blockType(): ContentBlockType
     {
         return ContentBlockType::TabItem;
+    }
+
+    public static function seed(string $title, BlockSpec ...$content): BlockSpec
+    {
+        return BlockSpec::of(static::blockKey(), ['title' => $title], slots: [self::CONTENT => array_values($content)]);
     }
 
     public function getBlockLabel(): string|Htmlable|Closure|null
@@ -32,7 +40,7 @@ class TabItem extends TgsBlock
 
     public function blockSlots(): array
     {
-        return ['content'];
+        return [self::CONTENT];
     }
 
     public static function toText(array $data): ?string

@@ -7,6 +7,7 @@ use ApiMedia\Tgs\Enums\ColumnWidth;
 use ApiMedia\Tgs\Enums\ContentBlockType;
 use ApiMedia\Tgs\Enums\Justification;
 use ApiMedia\Tgs\Enums\TgsBlockLayout;
+use ApiMedia\Tgs\Support\BlockSpec;
 use ApiMedia\Tgs\Support\TgsBlock;
 use ApiMedia\Tgs\Support\TgsCategory;
 use Closure;
@@ -19,6 +20,10 @@ use Illuminate\Contracts\Support\Htmlable;
 
 class DoubleColumn extends TgsBlock
 {
+    private const LEFT = 'left';
+
+    private const RIGHT = 'right';
+
     protected string|\BackedEnum|\Illuminate\Contracts\Support\Htmlable|Closure|null $icon = 'iconpark-column-o';
 
     public static function dataClass(): ?string
@@ -29,6 +34,15 @@ class DoubleColumn extends TgsBlock
     public static function blockType(): ContentBlockType
     {
         return ContentBlockType::DoubleColumn;
+    }
+
+    /**
+     * @param  BlockSpec|list<BlockSpec>  $left
+     * @param  BlockSpec|list<BlockSpec>  $right
+     */
+    public static function seed(BlockSpec|array $left = [], BlockSpec|array $right = []): BlockSpec
+    {
+        return BlockSpec::of(static::blockKey(), slots: [self::LEFT => $left, self::RIGHT => $right]);
     }
 
     public function getBlockLabel(): string|Htmlable|Closure|null
@@ -44,9 +58,9 @@ class DoubleColumn extends TgsBlock
                     ->contained(true)
                     ->tabs([
                         Tab::make(__('tgs::filament.tgs.blocks.double_column.fields.left.label'))
-                            ->schema($this->getColumnFields('left')),
+                            ->schema($this->getColumnFields(self::LEFT)),
                         Tab::make(__('tgs::filament.tgs.blocks.double_column.fields.right.label'))
-                            ->schema($this->getColumnFields('right')),
+                            ->schema($this->getColumnFields(self::RIGHT)),
                     ]),
                 Section::make([
                     Select::make('justification')
@@ -68,7 +82,7 @@ class DoubleColumn extends TgsBlock
 
     public function blockSlots(): array
     {
-        return ['left', 'right'];
+        return [self::LEFT, self::RIGHT];
     }
 
     public function blockCategory(): ?TgsCategory

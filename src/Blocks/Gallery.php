@@ -6,6 +6,7 @@ use ApiMedia\Tgs\Data\Blocks\GalleryData;
 use ApiMedia\Tgs\Enums\ContentBlockType;
 use ApiMedia\Tgs\Filament\ContentBuilderFactory;
 use ApiMedia\Tgs\Models\Block;
+use ApiMedia\Tgs\Support\BlockSpec;
 use ApiMedia\Tgs\Support\TgsBlock;
 use ApiMedia\Tgs\Support\TgsCategory;
 use ApiMedia\Tgs\Support\TgsModels;
@@ -33,6 +34,11 @@ class Gallery extends TgsBlock
         return ContentBlockType::Gallery;
     }
 
+    public static function seed(string ...$files): BlockSpec
+    {
+        return BlockSpec::of(static::blockKey(), files: array_values($files));
+    }
+
     public function getBlockLabel(): string|Htmlable|Closure|null
     {
         return __('tgs::filament.tgs.blocks.gallery.label');
@@ -43,6 +49,7 @@ class Gallery extends TgsBlock
         return [
             static::mediaUuidHiddenField(),
             SpatieMediaLibraryFileUpload::make('image')
+                ->when(($disk = static::contentMediaDisk()) !== null, fn (SpatieMediaLibraryFileUpload $field) => $field->disk($disk))
                 // TODO: check if possible adding custom properties via editor
                 ->model(fn (Get $get) => static::resolveMediaHostBlock($get('id')))
                 ->imageEditor()

@@ -4,6 +4,7 @@ namespace ApiMedia\Tgs\Blocks;
 
 use ApiMedia\Tgs\Data\Blocks\TabsData;
 use ApiMedia\Tgs\Enums\ContentBlockType;
+use ApiMedia\Tgs\Support\BlockSpec;
 use ApiMedia\Tgs\Support\TgsBlock;
 use ApiMedia\Tgs\Support\TgsCategory;
 use Closure;
@@ -11,6 +12,8 @@ use Illuminate\Contracts\Support\Htmlable;
 
 class Tabs extends TgsBlock
 {
+    private const ITEMS = 'items';
+
     protected string|\BackedEnum|\Illuminate\Contracts\Support\Htmlable|Closure|null $icon = 'iconpark-page-o';
 
     public static function dataClass(): ?string
@@ -21,6 +24,11 @@ class Tabs extends TgsBlock
     public static function blockType(): ContentBlockType
     {
         return ContentBlockType::Tabs;
+    }
+
+    public static function seed(BlockSpec ...$items): BlockSpec
+    {
+        return BlockSpec::of(static::blockKey(), slots: [self::ITEMS => array_values($items)]);
     }
 
     public function getBlockLabel(): string|Htmlable|Closure|null
@@ -35,12 +43,12 @@ class Tabs extends TgsBlock
 
     public function blockSlots(): array
     {
-        return ['items'];
+        return [self::ITEMS];
     }
 
     public function blockAllowedChildren(): array
     {
-        return ['items' => ['tab_item']];
+        return [self::ITEMS => [TabItem::blockKey()]];
     }
 
     public function blockCategory(): ?TgsCategory

@@ -5,6 +5,7 @@ namespace ApiMedia\Tgs\Blocks;
 use ApiMedia\Tgs\Data\Blocks\PictureData;
 use ApiMedia\Tgs\Enums\ContentBlockType;
 use ApiMedia\Tgs\Models\Block;
+use ApiMedia\Tgs\Support\BlockSpec;
 use ApiMedia\Tgs\Support\TgsBlock;
 use ApiMedia\Tgs\Support\TgsCategory;
 use ApiMedia\Tgs\Support\TgsModels;
@@ -32,6 +33,11 @@ class Picture extends TgsBlock
         return ContentBlockType::Picture;
     }
 
+    public static function seed(?string $image = null, ?string $alt = null): BlockSpec
+    {
+        return BlockSpec::of(static::blockKey(), ['alt' => $alt], files: $image === null ? [] : [$image]);
+    }
+
     public function getBlockLabel(): string|Htmlable|Closure|null
     {
         return __('tgs::filament.tgs.blocks.picture.label');
@@ -42,6 +48,7 @@ class Picture extends TgsBlock
         return [
             static::mediaUuidHiddenField(),
             SpatieMediaLibraryFileUpload::make('image')
+                ->when(($disk = static::contentMediaDisk()) !== null, fn (SpatieMediaLibraryFileUpload $field) => $field->disk($disk))
                 ->model(fn (Get $get) => static::resolveMediaHostBlock($get('id')))
                 ->required()
                 ->label(__('tgs::filament.tgs.blocks.picture.fields.image.label'))

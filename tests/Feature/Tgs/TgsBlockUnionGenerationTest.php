@@ -39,8 +39,10 @@ class TgsBlockUnionGenerationTest extends TestCase
             $this->assertStringContainsString('type: "content"', $types);
             $this->assertStringContainsString('content: string | null', $types);
             $this->assertStringContainsString('export type UnknownBlock', $types);
-            $this->assertStringContainsString('export type Block', $union);
-            $this->assertStringContainsString('ApiMedia.Tgs.Data.UnknownBlock', $union);
+            $this->assertStringContainsString('data: Record<string, unknown> | unknown[];', $types);
+            $this->assertStringContainsString('export type KnownBlock =', $union);
+            $this->assertStringContainsString('export type Block = KnownBlock | ApiMedia.Tgs.Data.UnknownBlock;', $union);
+            $this->assertSame(1, substr_count($union, 'ApiMedia.Tgs.Data.UnknownBlock'));
             $this->assertStringNotContainsString('App.', $types.$union);
         } finally {
             File::delete($output);

@@ -12,11 +12,15 @@ use ApiMedia\Tgs\Models\Collection;
 use ApiMedia\Tgs\Services\BlockTreeAssembler;
 use ApiMedia\Tgs\Support\BlockTree;
 use ApiMedia\Tgs\Tests\TestCase;
+use Filament\Resources\Events\RecordCreated;
+use Filament\Support\Exceptions\Halt;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
+use RuntimeException;
 use Workbench\App\Filament\Resources\TgsDemoResource\Pages\CreateTgsDemo;
 use Workbench\App\Models\TgsDemo;
 use Workbench\App\Models\User;
@@ -62,10 +66,54 @@ class WorkbenchTest extends TestCase
         $this->assertInstanceOf($page, $component);
         $this->assertTrue($component->getSchema('form')?->getModelInstance()?->is($record));
 
-        $form->fillForm(['name' => 'Saved draft'])->call('create')->assertHasNoFormErrors()->assertRedirect();
+        $form->set('data.name', 'Saved draft');
+        $this->assertSame(0, $model::query()->count());
+        $form = Livewire::withQueryParams(['draft' => 'workbench-provisional'])->test($page)
+            ->assertSet('data.name', 'Saved draft');
+        $form->call('create')->assertHasNoFormErrors()->assertRedirect();
         $saved = $model::query()->sole();
         $this->assertSame('Saved draft', $saved->name);
         $this->assertTrue($saved->is($record));
+        Livewire::withQueryParams(['draft' => 'workbench-provisional'])->test($page)->assertSet('data.name', null);
+    }
+
+    #[Test]
+    public function collection_remains_a_draft_when_creation_fails_after_saving(): void
+    {
+        $this->actingAs(User::query()->create(['name' => 'Editor', 'email' => 'editor@tgs.test', 'password' => 'password']));
+
+        $query = ['draft' => 'collection-failure'];
+        $form = Livewire::withQueryParams($query)->test(CreateCollection::class)
+            ->set('data.name', 'Unfinished collection');
+        Event::listen(RecordCreated::class, static function (): never {
+            throw new RuntimeException('Post-save failure');
+        });
+
+        try {
+            $form->call('create');
+            $this->fail('Expected the post-save failure');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('Post-save failure', $exception->getMessage());
+        }
+
+        $this->assertSame(0, Collection::query()->count());
+        Livewire::withQueryParams($query)->test(CreateCollection::class)->assertSet('data.name', 'Unfinished collection');
+    }
+
+    #[Test]
+    public function collection_keeps_the_form_when_filament_halts_and_rolls_back_creation(): void
+    {
+        $this->actingAs(User::query()->create(['name' => 'Editor', 'email' => 'editor@tgs.test', 'password' => 'password']));
+
+        $query = ['draft' => 'collection-halt'];
+        Event::listen(RecordCreated::class, static function (): never {
+            throw (new Halt)->rollBackDatabaseTransaction();
+        });
+        Livewire::withQueryParams($query)->test(CreateCollection::class)
+            ->set('data.name', 'Unfinished collection')->call('create')->assertNoRedirect();
+
+        $this->assertSame(0, Collection::query()->count());
+        Livewire::withQueryParams($query)->test(CreateCollection::class)->assertSet('data.name', 'Unfinished collection');
     }
 
     /**
@@ -93,7 +141,7 @@ class WorkbenchTest extends TestCase
         $this->assertSame($page::getUrl(['draft' => $draft]), $redirect);
         $form->assertJs('url => window.location.replace(url)', $redirect);
 
-        $secondForm = Livewire::withQueryParams($query)->test($page)->assertSuccessful();
+        $secondForm = Livewire::withQueryParams($query)->test($page)->assertSuccessful()->assertSet('data.name', null);
         $second = $model::findProvisional($draft);
         $this->assertNotNull($second);
         $this->assertFalse($second->is($first));

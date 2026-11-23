@@ -14,7 +14,7 @@ class UnknownBlockData extends Data
 {
     public function __construct(
         public string $type,
-        #[LiteralTypeScriptType('Record<string, unknown>')]
+        #[LiteralTypeScriptType('Record<string, unknown> | unknown[]')]
         public array $data,
     ) {}
 

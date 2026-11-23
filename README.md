@@ -98,6 +98,249 @@ public static function form(Schema $schema): Schema
 Поле само не знает полного списка и не делает клейм автоматически. У канваса один
 владелец; чужой клейм отклоняется атомарно. Освобождение даёт 24 часа до очистки.
 
+### Восстановление формы создания
+
+При повторном открытии того же `?draft=…` в той же сессии `HandlesProvisionalCreate`
+восстанавливает канвасы и введённые значения обычных полей. Текст отправляется после
+паузы при вводе. Списки и переключатели сохраняются при изменении. При обновлении
+страницы вернётся последнее значение, которое сервер успел сохранить. Временные
+файлы из обычных полей нужно выбрать заново. Уже сохранённые файлы внутри блоков
+восстанавливаются вместе с блоками.
+
+Форма использует серверную сессию для доступа к черновику и постоянный кэш Laravel
+для значений его полей. Каждый черновик хранится под своим ключом. «Отмена» возвращает
+в список. Прежний адрес позволяет продолжить работу до очистки черновика. Ошибка
+сохранения оставляет черновик доступным. После успешного «Создать» действуют обычные
+правила видимости записи, а «Создать ещё» открывает чистую форму.
+
+## Фабрики и сидеры
+
+Добавьте трейт `HasTgsContent` в Laravel-фабрику модели, у которой есть ТГС-канвасы.
+Например, внутри существующего класса `ArticleFactory`:
+
+```php
+use \ApiMedia\Tgs\Database\Factories\Concerns\HasTgsContent;
+```
+
+Фабрика заполняет только канвасы, указанные в `withTgs()`. В примере модель объявляет
+группы `content` и `summary` в `canvasGroups()`.
+
+```php
+use ApiMedia\Tgs\Blocks\Content;
+use ApiMedia\Tgs\Blocks\DoubleColumn;
+use ApiMedia\Tgs\Blocks\Gallery;
+use ApiMedia\Tgs\Blocks\TabItem;
+use ApiMedia\Tgs\Blocks\Tabs;
+use App\Models\Article;
+use App\Tgs\Blocks\Banner;
+
+$articles = Article::factory()
+    ->count(5)
+    ->withTgs('summary', Content::seed('<p>Кратко</p>'))
+    ->withTgs('content',
+        Content::seed()->count(2),
+        Banner::seed(title: 'Летняя акция'),
+        Tabs::seed(TabItem::seed('Обзор', DoubleColumn::seed(
+            left: Content::seed('<p>Слева</p>'),
+            right: Gallery::seed($firstImagePath, $secondImagePath),
+        ))),
+    )
+    ->withTgs('content', Content::seed('<p>В конце</p>'))
+    ->create();
+```
+
+`seed()` возвращает рецепт блока (`BlockSpec`). Каждый вызов `create()` создаёт из
+рецепта новые блоки и заново вычисляет данные Faker для каждого экземпляра.
+Второй `withTgs('content', ...)` добавляет блоки в конец списка для этой статьи.
+`withTgs('content')` и `Content::seed()->count(0)` пропускают заполнение.
+`make()` работает как обычная фабрика Laravel и откладывает весь рецепт ТГС до `create()`.
+
+Пакет сверяет ключи групп с моделью, а типы и дочерние слоты с текущими дескрипторами.
+Неизвестный тип, скрытый блок, опечатка в слоте или запрет на размещение дают ошибку
+до сохранения дерева. Используйте соединение Laravel по умолчанию для модели и таблиц ТГС.
+
+Фабрика сохраняет статью, её блоки и медиа в одной транзакции БД. При откате
+пакет убирает файлы, которые успел записать для этой статьи, и сохраняет исходные
+файлы. Уже созданные статьи из той же пачки остаются. Внешняя транзакция Laravel
+может откатить их вместе. Исключение из обработчика после коммита сохраняет
+и записи, и их файлы.
+
+### Рецепт для блока приложения
+
+Добавьте метод в зарегистрированный дескриптор своего блока.
+В этом примере Banner уже умеет показывать картинку через один UUID поля.
+
+```php
+use ApiMedia\Tgs\Support\BlockSpec;
+use App\Enums\BannerAppearance;
+
+public static function seed(
+    string $title,
+    ?string $image = null,
+    BannerAppearance $appearance = BannerAppearance::Calm,
+): BlockSpec {
+    return BlockSpec::of(
+        static::blockKey(),
+        ['title' => $title, 'appearance' => $appearance->value],
+        files: $image === null ? [] : [$image],
+    );
+}
+
+public static function contentMediaDisk(): ?string
+{
+    return 'public';
+}
+```
+
+В загрузчике используйте `->disk(static::contentMediaDisk())->visibility('public')`.
+Этот же диск применяет фабрика. Без явного диска фабрика использует настройки
+коллекции и Spatie Media Library. Для блока с медиа пакет создаёт один `data.uuid`.
+Все файлы галереи с таким UUID принадлежат одному полю и сохраняются в заданном
+порядке. Передавайте пути к локальным файлам, доступным внутри контейнера.
+См. [форму Picture](src/Blocks/Picture.php) и [чтение изображения](src/Data/Blocks/PictureData.php).
+
+Для своего блока с полем JavaScript можно тем же способом вернуть
+`BlockSpec::of(static::blockKey(), ['count' => $initial])` из `Counter::seed(int $initial = 0)`.
+У `BlockSpec::of()` аргумент `data` также принимает функцию, если данные нужно
+вычислить заново при каждом создании. Вложенное содержимое передавайте в `slots`.
+
+### Импорт готового дерева
+
+В этом примере `Article` — модель приложения с двумя группами из `canvasGroups()`,
+`['content', 'summary']`. Основной текст идёт первым, поскольку `getContent()`
+без аргумента читает первую группу. Используйте ключи, объявленные вашей моделью.
+Обычный `Article::factory()->create()` создаёт оба канваса пустыми. Для заполнения
+одного канваса вызовите только соответствующий `replaceTree()`.
+
+```php
+use ApiMedia\Tgs\Database\Factories\BlockFactory;
+use ApiMedia\Tgs\Models\Block;
+use ApiMedia\Tgs\Services\CanvasPersistence;
+use ApiMedia\Tgs\Support\BlockTree;
+use ApiMedia\Tgs\Support\TabsBuilder;
+use App\Enums\BannerAppearance;
+use App\Models\Article;
+use App\Tgs\Blocks\Banner;
+use Illuminate\Support\Facades\DB;
+
+$article = DB::transaction(function (): Article {
+    $article = Article::factory()->create();
+    $writer = app(CanvasPersistence::class);
+    $node = static fn (Block $block): array => [
+        'type' => $block->type,
+        'data' => ['id' => $block->id] + $block->data,
+    ];
+
+    $summary = BlockFactory::new()->content(['content' => '<p>Кратко</p>'])->make();
+    $writer->replaceTree($article->canvasDescriptor('summary'), [$node($summary)]);
+
+    $main = BlockTree::make()->tabs(fn (TabsBuilder $tabs) => $tabs
+        ->tabItem('Обзор', fn (BlockTree $tab) => $tab->doubleColumn(
+            fn (BlockTree $left) => $left->content('<p>Слева</p>'),
+            fn (BlockTree $right) => $right->content('<p>Справа</p>'),
+        ))
+        ->tabItem('Детали', fn (BlockTree $tab) => $tab->content('<p>Подробности</p>')));
+
+    // Banner зарегистрирован приложением через TgsPlugin::blocks([Banner::class]).
+    $banner = BlockFactory::new()->state([
+        'type' => Banner::blockKey(),
+        'data' => [
+            'title' => 'Летняя акция',
+            'description' => 'Товары из сезонной подборки.',
+            'link' => 'https://example.com/sale',
+            'appearance' => BannerAppearance::Accent->value,
+        ],
+    ])->make();
+
+    $writer->replaceTree($article->canvasDescriptor('content'), [
+        ...$main->toArray(),
+        $node($banner),
+    ]);
+
+    return $article;
+});
+```
+
+`Banner` и `BannerAppearance` в примере принадлежат приложению-стартеру. Для своего
+блока передайте ключ его дескриптора и данные по схеме этого блока. Регистрация нужна
+для чтения через DTO сайта. Доверенный `replaceTree()` принимает и старые снимки
+с неизвестными ключами. Они читаются как нераспознанные блоки.
+
+`BlockFactory::make()` собирает блок в памяти. С `count(3)` он вернёт коллекцию,
+из которой можно собрать три узла тем же преобразованием `$node`. Для каждого нового
+канваса создавайте блоки и дерево заново. Если достаточно встроенных блоков, можно
+вызвать `$main->persistTo($article, 'content')`, который сам передаёт снимок в
+`replaceTree()`. Пустое дерево `persistTo()` отклоняет. Явный `replaceTree($descriptor, [])`
+очищает размещения целевого канваса.
+
+`getContent('summary')` отдаёт список с текстовым блоком. В `getContent('content')`
+вкладки раскрываются в `items`, а текст внутри колонок — в `left` и `right`.
+Добавьте эти поля в DTO статьи, если оба канваса должны быть доступны в API.
+Транзакция вокруг создания статьи и обоих вызовов отменяет все записи в БД при сбое.
+
+Сокращённый JSON с обоими канвасами:
+
+```json
+{
+  "summary": [{"type": "content", "content": "<p>Кратко</p>"}],
+  "content": [
+    {"type": "tabs", "items": [
+      {"title": "Обзор", "content": [{"type": "double_column",
+        "left": [{"type": "content", "content": "<p>Слева</p>"}],
+        "right": [{"type": "content", "content": "<p>Справа</p>"}]}]},
+      {"title": "Детали", "content": [{"type": "content", "content": "<p>Подробности</p>"}]}
+    ]},
+    {"type": "site_banner", "title": "Летняя акция", "appearance": "accent"}
+  ]
+}
+```
+
+### Ручное прикрепление медиа после импорта
+
+Если Banner сайта содержит изображение, добавьте в его схему
+`static::mediaUuidHiddenField()` и настройте загрузчик для этого поля по образцу
+[Picture](src/Blocks/Picture.php). Для изображения, доступного посетителям сайта,
+явно задайте `->disk('public')->visibility('public')`. Загрузчик использует
+уже созданную запись блока. Свойство медиа `custom_properties.uuid` связывает
+прикреплённый файл с `data.uuid` блока.
+
+Фабрика статьи может выполнить такое прикрепление в `afterCreating()`.
+Заранее задайте ID блока и UUID поля, чтобы найти запись после импорта:
+
+```php
+use ApiMedia\Tgs\Services\CanvasPersistence;
+use ApiMedia\Tgs\Support\TgsModels;
+use App\Models\Article;
+use App\Tgs\Blocks\Banner;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+// $bannerData — поля Banner сайта, а $imagePath — путь к файлу в app-контейнере.
+$factory = Article::factory()->afterCreating(
+    function (Article $article) use ($bannerData, $imagePath): void {
+        $id = (string) Str::ulid();
+        $uuid = (string) Str::uuid();
+
+        app(CanvasPersistence::class)->replaceTree($article->canvasDescriptor('content'), [
+            ['type' => Banner::blockKey(), 'data' => ['id' => $id, 'uuid' => $uuid] + $bannerData],
+        ]);
+
+        $block = TgsModels::block()::query()->findOrFail($id);
+        $block->addMedia($imagePath)
+            ->preservingOriginal()
+            ->withCustomProperties(['uuid' => $uuid])
+            ->toMediaCollection($block::getContentMediaCollectionName(), 'public');
+    },
+);
+
+$article = DB::transaction(fn () => $factory->create());
+```
+
+В `BannerData::fromStored()` найдите запись блока по сохранённому `id` и медиа через
+`$block->contentMediaWithUuid($uuid)->first()`. Передайте найденный файл в
+`TgsImageData::fromMedia()`. Транзакция откатывает строки БД. Уже записанным файлам
+при сбое может понадобиться отдельная очистка.
+
 ## Кэш публичной выдачи
 
 Сайт выбирает кэшируемые ответы, TTL и ключи. ТГС находит все затронутые хосты,
@@ -468,6 +711,26 @@ Callback **заменяет** набор стандартных конверси
 поля `original/tiny/thumb/medium/large` сохранены. Для production можно использовать
 очередь вместо `nonQueued()`. Конверсии других моделей сайта не меняются.
 
+### Проверка в Docker
+
+1. В PHP-контейнере приложения запустите `composer check-platform-reqs` и `php --ri gd`.
+   Для настройки `IMAGE_DRIVER=gd` нужен GD с поддержкой формата загружаемого файла.
+   Spatie Media Library также требует `exif` и `fileinfo`. Версию PHP определяет lock
+   сайта. Например, стартер с Spatie Image 3.9.9 использует PHP 8.4.
+2. На локальном стенде задайте `QUEUE_CONVERSIONS_BY_DEFAULT=false` и перезагрузите
+   конфигурацию приложения. Если используется Octane, перезапустите его воркеры.
+   Для публичного локального диска настройте `APP_URL` и раздачу `/storage`
+   через `php artisan storage:link` или alias веб-сервера.
+3. Загрузите новое изображение на блок со стандартными конверсиями. Получите JSON блока
+   из API. `image.conversions` должен содержать `original`, `tiny`, `thumb`, `medium`
+   и `large`. Откройте каждый URL и сверьте `width` и `height` с результатом
+   `getimagesize()` скачанного файла.
+
+При включённой очереди новые конверсии появляются после выполнения задачи. Запустите
+воркер на тех же соединении и очереди, которые указаны в настройках Media Library.
+У воркера должен быть доступ к дискам и выбранному PHP-драйверу. Для закрытого диска
+используйте подписанный URL. Обычная ссылка на него может вернуть HTTP 403.
+
 ## Права
 
 В `boot()` провайдера приложения, где `User` — ваша модель пользователя:
@@ -518,6 +781,21 @@ php artisan tgs:check
 
 Union `ApiMedia.Tgs.Data.Block` записывается в `resources/types/tgs-blocks.d.ts`.
 Генерируйте оба файла после изменения DTO или набора зарегистрированных блоков.
+
+`KnownBlock` содержит типы из того же реестра. Полный `Block` включает также
+нераспознанный блок с исходным `type` и полем `data` в форме объекта или списка.
+Даже известный `type` может иметь несовместимые данные, поэтому перед чтением
+поля проверьте его наличие:
+
+```ts
+function readText(block: ApiMedia.Tgs.Data.Block): string | null {
+  if (block.type === 'content' && 'content' in block) return block.content;
+  if (block.type === 'site_banner' && 'title' in block) return block.title;
+  return null;
+}
+```
+
+Вторая ветка относится к сайту, который зарегистрировал Banner стартера.
 
 ## Очистка и существующая схема
 

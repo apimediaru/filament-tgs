@@ -4,6 +4,7 @@ namespace ApiMedia\Tgs\Blocks;
 
 use ApiMedia\Tgs\Data\Blocks\ContentData;
 use ApiMedia\Tgs\Enums\ContentBlockType;
+use ApiMedia\Tgs\Support\BlockSpec;
 use ApiMedia\Tgs\Support\TgsBlock;
 use ApiMedia\Tgs\Support\TgsCategory;
 use Closure;
@@ -22,6 +23,14 @@ class Content extends TgsBlock
     public static function blockType(): ContentBlockType
     {
         return ContentBlockType::Content;
+    }
+
+    public static function seed(?string $html = null): BlockSpec
+    {
+        return BlockSpec::of(
+            static::blockKey(),
+            $html === null ? static fn (): array => ['content' => '<p>'.e(fake()->paragraph()).'</p>'] : ['content' => $html],
+        );
     }
 
     public function getBlockLabel(): string|Htmlable|Closure|null

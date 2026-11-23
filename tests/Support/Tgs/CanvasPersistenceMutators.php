@@ -20,6 +20,8 @@ final class CanvasPersistenceMutators
 {
     /** @var list<string> */
     public const NON_MUTATING = [
+        // Validates a recipe's data in memory before any snapshot is written.
+        'assertSeedFields',
         // Pure reads — no rows written, so no content change to signal.
         'wouldCreateCycle',
         'subtreeHasReferences',
