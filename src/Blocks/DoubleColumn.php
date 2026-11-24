@@ -40,9 +40,9 @@ class DoubleColumn extends TgsBlock
      * @param  BlockSpec|list<BlockSpec>  $left
      * @param  BlockSpec|list<BlockSpec>  $right
      */
-    public static function seed(BlockSpec|array $left = [], BlockSpec|array $right = []): BlockSpec
+    public static function blockSpec(BlockSpec|array $left = [], BlockSpec|array $right = []): BlockSpec
     {
-        return BlockSpec::of(static::blockKey(), slots: [self::LEFT => $left, self::RIGHT => $right]);
+        return BlockSpec::for(static::class, slots: [self::LEFT => $left, self::RIGHT => $right]);
     }
 
     public function getBlockLabel(): string|Htmlable|Closure|null

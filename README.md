@@ -129,30 +129,43 @@ use \ApiMedia\Tgs\Database\Factories\Concerns\HasTgsContent;
 use ApiMedia\Tgs\Blocks\Content;
 use ApiMedia\Tgs\Blocks\DoubleColumn;
 use ApiMedia\Tgs\Blocks\Gallery;
+use ApiMedia\Tgs\Blocks\Picture;
 use ApiMedia\Tgs\Blocks\TabItem;
 use ApiMedia\Tgs\Blocks\Tabs;
+use ApiMedia\Tgs\Support\BlockSpec;
 use App\Models\Article;
 use App\Tgs\Blocks\Banner;
 
 $articles = Article::factory()
     ->count(5)
-    ->withTgs('summary', Content::seed('<p>Кратко</p>'))
+    ->withTgs('summary', Content::blockSpec('<p>Кратко</p>'))
     ->withTgs('content',
-        Content::seed()->count(2),
-        Banner::seed(title: 'Летняя акция'),
-        Tabs::seed(TabItem::seed('Обзор', DoubleColumn::seed(
-            left: Content::seed('<p>Слева</p>'),
-            right: Gallery::seed($firstImagePath, $secondImagePath),
+        Content::blockSpec()->count(2),
+        Picture::blockSpec(image: $firstImagePath, alt: 'Обложка'),
+        BlockSpec::for(Banner::class, data: ['title' => 'Летняя акция']),
+        Tabs::blockSpec(TabItem::blockSpec('Обзор', DoubleColumn::blockSpec(
+            left: Content::blockSpec('<p>Слева</p>'),
+            right: Gallery::blockSpec($firstImagePath, $secondImagePath),
         ))),
     )
-    ->withTgs('content', Content::seed('<p>В конце</p>'))
+    ->withTgs('content', Content::blockSpec('<p>В конце</p>'))
     ->create();
 ```
 
-`seed()` возвращает рецепт блока (`BlockSpec`). Каждый вызов `create()` создаёт из
-рецепта новые блоки и заново вычисляет данные Faker для каждого экземпляра.
+`withTgs()` принимает рецепты блоков (`BlockSpec`). У `Picture::blockSpec()` есть
+именованные параметры изображения. У зарегистрированного баннера в примере своего
+метода нет. `BlockSpec::for(Banner::class, …)` берёт ключ из `Banner::blockKey()`.
+Когда известен только строковый ключ, используйте `BlockSpec::of($key, data: $data)`.
+Обе формы принимают данные, дочерние рецепты в `slots` и пути к файлам в `files`.
+
+Из встроенных методов только `Content::blockSpec()` без HTML подставляет абзац Faker.
+Он генерируется при `create()` отдельно для каждого блока каждой статьи, включая
+повторы через `count()`. Переданный HTML используется как есть. У `for()` и `of()`
+массив `data` содержит готовые значения. Для генерации при создании передайте
+замыкание, например `BlockSpec::for(Banner::class, data: fn () => ['title' => fake()->sentence()])`.
+
 Второй `withTgs('content', ...)` добавляет блоки в конец списка для этой статьи.
-`withTgs('content')` и `Content::seed()->count(0)` пропускают заполнение.
+`withTgs('content')` и `Content::blockSpec()->count(0)` пропускают заполнение.
 `make()` работает как обычная фабрика Laravel и откладывает весь рецепт ТГС до `create()`.
 
 Пакет сверяет ключи групп с моделью, а типы и дочерние слоты с текущими дескрипторами.
@@ -167,20 +180,21 @@ $articles = Article::factory()
 
 ### Рецепт для блока приложения
 
-Добавьте метод в зарегистрированный дескриптор своего блока.
-В этом примере Banner уже умеет показывать картинку через один UUID поля.
+Если для баннера удобнее именованные параметры, добавьте `blockSpec()` в его дескриптор.
+Если у родителя нет `blockSpec()`, имена и типы параметров выбирает автор блока.
+В примере баннер наследует `TgsBlock` и уже имеет поле изображения с привязкой по UUID.
 
 ```php
 use ApiMedia\Tgs\Support\BlockSpec;
 use App\Enums\BannerAppearance;
 
-public static function seed(
+public static function blockSpec(
     string $title,
     ?string $image = null,
     BannerAppearance $appearance = BannerAppearance::Calm,
 ): BlockSpec {
-    return BlockSpec::of(
-        static::blockKey(),
+    return BlockSpec::for(
+        static::class,
         ['title' => $title, 'appearance' => $appearance->value],
         files: $image === null ? [] : [$image],
     );
@@ -200,9 +214,23 @@ public static function contentMediaDisk(): ?string
 См. [форму Picture](src/Blocks/Picture.php) и [чтение изображения](src/Data/Blocks/PictureData.php).
 
 Для своего блока с полем JavaScript можно тем же способом вернуть
-`BlockSpec::of(static::blockKey(), ['count' => $initial])` из `Counter::seed(int $initial = 0)`.
-У `BlockSpec::of()` аргумент `data` также принимает функцию, если данные нужно
-вычислить заново при каждом создании. Вложенное содержимое передавайте в `slots`.
+`BlockSpec::for(static::class, data: ['count' => $initial])` из `Counter::blockSpec(int $initial = 0)`.
+
+### Обновление наследников встроенных блоков с v0.1.6
+
+Если ваш класс переопределял встроенный `seed()`, переименуйте и метод, и его вызовы
+в `blockSpec()`, чтобы фабрика продолжила использовать ваш рецепт.
+
+Проверьте также наследников, у которых уже был свой `blockSpec()`. PHP проверяет
+совместимость с родительским методом при загрузке класса. Например, `SitePicture extends Picture`
+наследует `blockSpec(?string $image = null, ?string $alt = null): BlockSpec`.
+При переопределении можно добавить необязательный параметр после этих двух.
+Сохраните имена `image` и `alt`, чтобы существующие именованные вызовы работали.
+
+Если прежний рецепт имел сигнатуру `blockSpec(string $caption): BlockSpec`,
+дайте ему отдельное имя, например `captioned(string $caption): BlockSpec`,
+и обновите вызовы на `SitePicture::captioned(caption: 'Подпись')`.
+Тогда `SitePicture::blockSpec(image: $path, alt: 'Обложка')` продолжит вызывать рецепт `Picture`.
 
 ### Импорт готового дерева
 

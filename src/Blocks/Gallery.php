@@ -34,9 +34,9 @@ class Gallery extends TgsBlock
         return ContentBlockType::Gallery;
     }
 
-    public static function seed(string ...$files): BlockSpec
+    public static function blockSpec(string ...$files): BlockSpec
     {
-        return BlockSpec::of(static::blockKey(), files: array_values($files));
+        return BlockSpec::for(static::class, files: array_values($files));
     }
 
     public function getBlockLabel(): string|Htmlable|Closure|null

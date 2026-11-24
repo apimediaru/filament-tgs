@@ -43,14 +43,14 @@ class TgsFactoryTest extends TestCase
     {
         $articles = [
             SeedArticle::factory()->create(),
-            SeedArticle::factory()->withTgs('summary')->withTgs('content', Content::seed()->count(0))->create(),
+            SeedArticle::factory()->withTgs('summary')->withTgs('content', Content::blockSpec()->count(0))->create(),
         ];
         foreach ($articles as $article) {
             $this->assertSame(['content', 'summary'], $article->canvasRecords()->orderBy('group')->pluck('group')->all());
             $this->assertNull($article->getContent('content'));
             $this->assertNull($article->getContent('summary'));
         }
-        $this->assertCount(0, SeedArticle::factory()->count(0)->withTgs('content', Content::seed())->create());
+        $this->assertCount(0, SeedArticle::factory()->count(0)->withTgs('content', Content::blockSpec())->create());
         $this->assertSame(0, Block::count());
     }
 
@@ -58,14 +58,14 @@ class TgsFactoryTest extends TestCase
     public function a_factory_fills_independent_canvases_in_call_order_for_each_article(): void
     {
         $number = 0;
-        $paragraph = BlockSpec::of(Content::blockKey(), function () use (&$number): array {
+        $paragraph = BlockSpec::for(Content::class, data: function () use (&$number): array {
             return ['content' => 'Текст '.++$number];
         });
 
         $factory = SeedArticle::factory()
-            ->withTgs('summary', Content::seed('Кратко'))
+            ->withTgs('summary', Content::blockSpec('Кратко'))
             ->withTgs('content', $paragraph->count(2))
-            ->withTgs('content', Content::seed('Конец'))
+            ->withTgs('content', BlockSpec::of('content', ['content' => 'Конец']))
             ->count(5);
 
         $this->assertCount(5, $factory->make());
@@ -92,9 +92,9 @@ class TgsFactoryTest extends TestCase
         app(TgsBlockRegistry::class)->blocks([SeedCounter::class]);
 
         $article = SeedArticle::factory()->withTgs('content',
-            Tabs::seed(TabItem::seed('Обзор', DoubleColumn::seed(
-                left: [Content::seed('Слева'), Content::seed('Ещё')],
-                right: SeedCounter::seed(initial: 7),
+            Tabs::blockSpec(TabItem::blockSpec('Обзор', DoubleColumn::blockSpec(
+                left: [Content::blockSpec('Слева'), Content::blockSpec('Ещё')],
+                right: SeedCounter::blockSpec(initial: 7),
             ))),
         )->create(['name' => 'Две колонки']);
 
@@ -111,6 +111,7 @@ class TgsFactoryTest extends TestCase
     #[TestWith(['unknown_group'])]
     #[TestWith(['unknown_slot'])]
     #[TestWith(['unknown_type'])]
+    #[TestWith(['unregistered_descriptor'])]
     #[TestWith(['forbidden_host'])]
     #[TestWith(['disabled'])]
     #[TestWith(['invalid_child'])]
@@ -121,12 +122,13 @@ class TgsFactoryTest extends TestCase
         Event::fake([TgsContentChanged::class]);
 
         [$group, $spec, $error] = match ($scenario) {
-            'unknown_group' => ['typo', Content::seed(), 'Unknown canvas group'],
-            'unknown_slot' => ['content', BlockSpec::of('double_column', slots: ['lef' => Content::seed()]), 'lef'],
+            'unknown_group' => ['typo', Content::blockSpec(), 'Unknown canvas group'],
+            'unknown_slot' => ['content', BlockSpec::of('double_column', slots: ['lef' => Content::blockSpec()]), 'lef'],
             'unknown_type' => ['content', BlockSpec::of('unknown_key'), 'unknown_key'],
-            'forbidden_host' => ['content', DoubleColumn::seed(right: SeedCounter::seed()), 'counter'],
-            'disabled' => ['content', Content::seed(), 'content'],
-            'invalid_child' => ['content', BlockSpec::of('tabs', slots: ['items' => Content::seed()]), 'content'],
+            'unregistered_descriptor' => ['content', BlockSpec::for(SeedBanner::class), 'seed_banner'],
+            'forbidden_host' => ['content', DoubleColumn::blockSpec(right: SeedCounter::blockSpec()), 'counter'],
+            'disabled' => ['content', BlockSpec::for(Content::class), 'content'],
+            'invalid_child' => ['content', BlockSpec::of('tabs', slots: ['items' => Content::blockSpec()]), 'content'],
             'raw_children' => ['content', BlockSpec::of('double_column', ['lef' => [['type' => 'content', 'data' => []]]]), 'slots'],
             default => $this->fail("Unknown scenario [{$scenario}]."),
         };
@@ -136,7 +138,7 @@ class TgsFactoryTest extends TestCase
 
         try {
             SeedArticle::factory()
-                ->withTgs('summary', Content::seed('Первый канвас'))
+                ->withTgs('summary', Content::blockSpec('Первый канвас'))
                 ->withTgs($group, $spec)
                 ->create();
             $this->fail('The recipe should have been rejected.');
@@ -160,8 +162,8 @@ class TgsFactoryTest extends TestCase
 
         try {
             $articles = SeedArticle::factory()->count(2)->withTgs('content',
-                SeedBanner::seed(image: $second, title: 'Акция'),
-                DoubleColumn::seed(right: Gallery::seed($first, $second)),
+                BlockSpec::for(SeedBanner::class, data: ['title' => 'Акция'], files: [$second]),
+                DoubleColumn::blockSpec(right: Gallery::blockSpec($first, $second)),
             )->create();
 
             $tokens = [];
@@ -206,8 +208,8 @@ class TgsFactoryTest extends TestCase
         $factory = SeedArticle::factory()
             ->sequence(['name' => 'Первая'], ['name' => 'Вторая'], ['name' => 'Третья'], ['name' => 'Четвёртая'], ['name' => 'Пятая'])
             ->count(6)
-            ->withTgs('summary', Content::seed('Кратко'))
-            ->withTgs('content', Gallery::seed($file, $file));
+            ->withTgs('summary', Content::blockSpec('Кратко'))
+            ->withTgs('content', Gallery::blockSpec($file, $file));
         try {
             $factory->create();
             $this->fail('The second file should have failed.');
@@ -238,7 +240,7 @@ class TgsFactoryTest extends TestCase
 
         try {
             DB::transaction(function () use ($committed, $file): void {
-                SeedArticle::factory()->withTgs('content', Picture::seed($file))->create();
+                SeedArticle::factory()->withTgs('content', Picture::blockSpec($file))->create();
                 if ($committed) {
                     DB::afterCommit(fn () => throw new RuntimeException('after commit'));
                 } else {
@@ -280,9 +282,9 @@ class SeedCounter extends TgsBlock
         return SeedCounterData::class;
     }
 
-    public static function seed(int $initial = 0): BlockSpec
+    public static function blockSpec(int $initial = 0): BlockSpec
     {
-        return BlockSpec::of(static::blockKey(), ['count' => $initial]);
+        return BlockSpec::for(static::class, data: ['count' => $initial]);
     }
 }
 
@@ -316,11 +318,6 @@ class SeedBanner extends TgsBlock
     public static function dataClass(): string
     {
         return SeedBannerData::class;
-    }
-
-    public static function seed(?string $image = null, ?string $title = null): BlockSpec
-    {
-        return BlockSpec::of(static::blockKey(), ['title' => $title], files: $image === null ? [] : [$image]);
     }
 
     public static function contentMediaDisk(): ?string

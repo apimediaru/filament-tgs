@@ -46,6 +46,16 @@ final class TgsBlockRegistry
         ]);
     }
 
+    /** @internal */
+    public static function keyForDescriptor(string $class): string
+    {
+        if (! is_subclass_of($class, TgsBlock::class)) {
+            throw new InvalidArgumentException('TGS descriptor must extend the block base: '.$class);
+        }
+
+        return $class::blockKey();
+    }
+
     /** @param list<class-string<TgsBlock>> $classes */
     public function blocks(array $classes): self
     {
@@ -53,10 +63,7 @@ final class TgsBlockRegistry
         $bases = $this->baseDtos;
         $structural = $this->structural;
         foreach ($classes as $class) {
-            if (! is_subclass_of($class, TgsBlock::class)) {
-                throw new InvalidArgumentException('TGS descriptor must extend the block base: '.$class);
-            }
-            $key = $class::blockKey();
+            $key = self::keyForDescriptor($class);
             if (! preg_match('/^[a-z][a-z0-9_]*$/D', $key)) {
                 throw new InvalidArgumentException('Invalid TGS block key: '.$key);
             }

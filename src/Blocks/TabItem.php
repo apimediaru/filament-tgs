@@ -21,9 +21,9 @@ class TabItem extends TgsBlock
         return ContentBlockType::TabItem;
     }
 
-    public static function seed(string $title, BlockSpec ...$content): BlockSpec
+    public static function blockSpec(string $title, BlockSpec ...$content): BlockSpec
     {
-        return BlockSpec::of(static::blockKey(), ['title' => $title], slots: [self::CONTENT => array_values($content)]);
+        return BlockSpec::for(static::class, ['title' => $title], slots: [self::CONTENT => array_values($content)]);
     }
 
     public function getBlockLabel(): string|Htmlable|Closure|null
