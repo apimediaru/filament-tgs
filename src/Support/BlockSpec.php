@@ -33,6 +33,17 @@ final readonly class BlockSpec
         return new self($type, $data, $slots, $files, 1);
     }
 
+    /**
+     * @param  class-string<TgsBlock>  $blockClass
+     * @param  array<string, mixed>|Closure(): array<string, mixed>  $data
+     * @param  array<string, BlockSpec|list<BlockSpec>>  $slots
+     * @param  list<string>  $files
+     */
+    public static function for(string $blockClass, array|Closure $data = [], array $slots = [], array $files = []): self
+    {
+        return self::of(TgsBlockRegistry::keyForDescriptor($blockClass), $data, $slots, $files);
+    }
+
     public function count(int $quantity): self
     {
         if ($quantity < 0) {

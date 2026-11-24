@@ -25,10 +25,10 @@ class Content extends TgsBlock
         return ContentBlockType::Content;
     }
 
-    public static function seed(?string $html = null): BlockSpec
+    public static function blockSpec(?string $html = null): BlockSpec
     {
-        return BlockSpec::of(
-            static::blockKey(),
+        return BlockSpec::for(
+            static::class,
             $html === null ? static fn (): array => ['content' => '<p>'.e(fake()->paragraph()).'</p>'] : ['content' => $html],
         );
     }

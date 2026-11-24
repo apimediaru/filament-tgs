@@ -26,9 +26,9 @@ class Tabs extends TgsBlock
         return ContentBlockType::Tabs;
     }
 
-    public static function seed(BlockSpec ...$items): BlockSpec
+    public static function blockSpec(BlockSpec ...$items): BlockSpec
     {
-        return BlockSpec::of(static::blockKey(), slots: [self::ITEMS => array_values($items)]);
+        return BlockSpec::for(static::class, slots: [self::ITEMS => array_values($items)]);
     }
 
     public function getBlockLabel(): string|Htmlable|Closure|null

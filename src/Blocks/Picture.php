@@ -33,9 +33,9 @@ class Picture extends TgsBlock
         return ContentBlockType::Picture;
     }
 
-    public static function seed(?string $image = null, ?string $alt = null): BlockSpec
+    public static function blockSpec(?string $image = null, ?string $alt = null): BlockSpec
     {
-        return BlockSpec::of(static::blockKey(), ['alt' => $alt], files: $image === null ? [] : [$image]);
+        return BlockSpec::for(static::class, ['alt' => $alt], files: $image === null ? [] : [$image]);
     }
 
     public function getBlockLabel(): string|Htmlable|Closure|null

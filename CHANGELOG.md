@@ -5,6 +5,20 @@ breaking changes; patch releases preserve the public API.
 
 ## [Unreleased]
 
+### Added
+
+- Build factory recipes from a descriptor class with `BlockSpec::for($blockClass, …)`.
+  Use `BlockSpec::of($key, …)` when the type is known by its string key.
+
+### Changed
+
+- **Breaking for v0.1.6 factory users.** Replace `::seed(…)` with `::blockSpec(…)`
+  on Content, Picture, Gallery, Tabs, TabItem and DoubleColumn. The arguments stay
+  the same. The old method names have been removed. Migrate subclass overrides and their callers.
+  Before upgrading, check subclasses that already define `blockSpec()`. PHP rejects
+  incompatible overrides when loading the class. Use a compatible signature and keep
+  the parent parameter names for named calls, or rename the custom recipe and update its callers.
+
 ## [0.1.6] - 2026-11-23
 
 ### Added
